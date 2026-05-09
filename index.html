@@ -14,7 +14,6 @@
         .brand{font-size:20px;font-weight:900;background:linear-gradient(90deg,#e94560,#ff6b6b,#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1px}
         .brand-icon{font-size:22px}
         .no-ads{background:#28a745;color:#fff;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:bold;display:flex;align-items:center;gap:4px}
-        .no-ads::before{content:'🛡️'}
         .live-badge{background:#e94560;color:#fff;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:bold;animation:pulse 1.5s infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
         .header-btns{display:flex;gap:8px;align-items:center}
@@ -26,7 +25,7 @@
         /* Player */
         .player-box{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden;box-shadow:0 6px 24px rgba(233,69,96,.1);margin-bottom:14px}
         .player-box video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000}
-        .player-placeholder{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#111;color:#444}
+        .player-placeholder{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#111;color:#444;z-index:5}
         .player-loading{position:absolute;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:10}
         .player-loading.active{display:flex}
         .spinner{width:40px;height:40px;border:3px solid #222;border-top-color:#e94560;border-radius:50%;animation:spin .8s linear infinite}
@@ -34,6 +33,9 @@
         .quality-btns{position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:6px}
         .q-btn{background:rgba(0,0,0,.7);color:#ccc;border:1px solid rgba(255,255,255,.2);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;transition:.2s}
         .q-btn:hover,.q-btn.active{background:#e94560;color:#fff;border-color:#e94560}
+
+        /* Hidden iframe trap */
+        .iframe-trap{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}
 
         /* Match Info */
         .match-info{background:linear-gradient(135deg,#0f0f1a,#1a1a2e);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid rgba(233,69,96,.15);display:none}
@@ -65,9 +67,11 @@
         .card-meta{display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:#555}
         .loading{text-align:center;padding:20px;color:#555;font-size:12px}
 
-        /* Ad-free status indicator */
-        .stream-status{position:absolute;bottom:10px;left:10px;z-index:20;background:rgba(0,0,0,.7);color:#aaa;padding:3px 8px;border-radius:4px;font-size:9px;display:none}
-        .stream-status.adfree{color:#28a745}
+        /* Stream status */
+        .stream-status{position:absolute;bottom:10px;left:10px;z-index:20;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:4px;font-size:9px;display:none}
+        .stream-status.ok{color:#28a745}
+        .stream-status.warn{color:#ffc107}
+        .stream-status.err{color:#dc3545}
 
         @media(max-width:600px){
             .header{padding:10px 14px}
@@ -83,7 +87,7 @@
     <div class="header-left">
         <span class="brand-icon">⚽</span>
         <span class="brand">ဘစ်ကြီး</span>
-        <span class="no-ads" id="ads-badge">ကြော်ငြာမရှိ</span>
+        <span class="no-ads" id="ads-badge">🛡️ ကြော်ငြာမရှိ</span>
     </div>
     <div class="header-btns">
         <span class="live-badge">● တိုက်ရိုက်</span>
@@ -108,6 +112,9 @@
         <div class="stream-status" id="stream-status"></div>
     </div>
 
+    <!-- Hidden iframe for m3u8 interception -->
+    <div class="iframe-trap" id="iframe-trap"></div>
+
     <div class="match-info" id="info">
         <div class="match-header">
             <div class="league-info" id="i-league"></div>
@@ -128,17 +135,13 @@
 <script>
 const API_PROXY = '/api/matches';
 const video = document.getElementById('video');
+const iframeTrap = document.getElementById('iframe-trap');
 let hls = null;
 let currentStreams = null;
 let currentQuality = 'hd';
 let activeMatchId = null;
-
-// CORS proxy options to try (in order)
-const CORS_PROXIES = [
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `/api/proxy?url=${encodeURIComponent(url)}`
-];
+let interceptorActive = false;
+let foundM3u8 = null;
 
 // Status translations
 const statusMap = {
@@ -172,11 +175,7 @@ function playStream(url) {
     if (hls) { hls.destroy(); hls = null; }
 
     if (Hls.isSupported()) {
-        hls = new Hls({
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            startLevel: -1
-        });
+        hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, startLevel: -1 });
         hls.loadSource(url);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -185,7 +184,6 @@ function playStream(url) {
         });
         hls.on(Hls.Events.ERROR, (e, data) => {
             if (data.fatal) {
-                console.error('HLS error', data);
                 if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                     if (currentQuality === 'hd' && currentStreams && currentStreams.sd && currentStreams.sd.length) {
                         setQuality('sd');
@@ -213,66 +211,98 @@ function setQuality(q) {
     }
 }
 
-// === Stream Extraction (Client-Side via CORS Proxy) ===
-async function extractStream(matchId) {
-    const embedUrl = `https://sport99.live/embed/?id=${matchId}&source=rapid`;
-    
-    // Try each CORS proxy
-    for (let i = 0; i < CORS_PROXIES.length; i++) {
-        try {
-            const proxyUrl = CORS_PROXIES[i](embedUrl);
-            const resp = await fetch(proxyUrl);
-            const embedHtml = await resp.text();
-            
-            // Extract stream.php path
-            const streamMatch = embedHtml.match(/stream\.php\?[^"\\]+/);
-            if (!streamMatch) continue;
-            
-            const streamPath = streamMatch[0].replace(/&amp;/g, '&');
-            const streamUrl = `https://sport99.live/embed/${streamPath}`;
-            
-            // Fetch stream.php via same CORS proxy
-            const streamProxyUrl = CORS_PROXIES[i](streamUrl);
-            const streamResp = await fetch(streamProxyUrl);
-            const streamHtml = await streamResp.text();
-            
-            // Check if blocked
-            if (streamHtml.includes('ACCESS DENIED') || streamHtml.includes('API ERROR')) {
-                continue; // Try next proxy
+// === M3U8 Interceptor via Performance API ===
+function startM3u8Interceptor(timeout = 15000) {
+    return new Promise((resolve) => {
+        foundM3u8 = null;
+        interceptorActive = true;
+
+        // Clear old resource entries
+        performance.clearResourceTimings();
+
+        const observer = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+                if (entry.name.includes('.m3u8') && !foundM3u8) {
+                    foundM3u8 = entry.name;
+                    observer.disconnect();
+                    interceptorActive = false;
+                    resolve(foundM3u8);
+                }
             }
-            
-            // Extract m3u8 URLs
-            const m3u8Regex = /https?:\/\/[^\s"'\\]+\.m3u8[^\s"'\\]*/g;
-            const m3u8Urls = [...new Set(streamHtml.match(m3u8Regex) || [])];
-            
-            if (m3u8Urls.length) {
-                const hd = m3u8Urls.filter(u => u.includes('_lhd') || u.includes('_hd'));
-                const sd = m3u8Urls.filter(u => u.includes('_lsd') || u.includes('_sd'));
-                const otherSd = m3u8Urls.filter(u => !u.includes('_lhd') && !u.includes('_hd'));
-                const allSd = [...sd, ...otherSd];
-                const best = (hd.length ? hd : allSd)[0];
-                
-                return { success: true, best, hd: hd.slice(0, 3), sd: allSd.slice(0, 3), total: m3u8Urls.length, proxy: i };
+        });
+        observer.observe({ entryTypes: ['resource'] });
+
+        // Timeout fallback
+        setTimeout(() => {
+            if (!foundM3u8) {
+                // Try checking existing entries
+                const resources = performance.getEntriesByType('resource');
+                for (const r of resources) {
+                    if (r.name.includes('.m3u8')) {
+                        foundM3u8 = r.name;
+                        break;
+                    }
+                }
             }
-        } catch (e) {
-            console.warn(`CORS proxy ${i} failed:`, e.message);
-            continue;
-        }
-    }
-    
-    return { success: false };
+            observer.disconnect();
+            interceptorActive = false;
+            resolve(foundM3u8);
+        }, timeout);
+    });
 }
 
-// === Show stream status ===
-function showStatus(text, isAdFree) {
+function killIframe() {
+    iframeTrap.innerHTML = '';
+}
+
+// === Stream Loading ===
+async function loadStreamAdFree(embedUrl) {
+    showStatus('🔍 m3u8 ရှာဖွေနေသည်...', 'warn');
+    
+    // Start interceptor
+    const m3u8Promise = startM3u8Interceptor(20000);
+
+    // Load iframe into hidden trap
+    iframeTrap.innerHTML = `<iframe src="${embedUrl}" width="1" height="1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>`;
+
+    // Wait for m3u8 to be intercepted
+    const m3u8 = await m3u8Promise;
+
+    // Kill the iframe immediately to stop ads from loading
+    killIframe();
+
+    if (m3u8) {
+        // Success! Play ad-free
+        const sdM3u8 = m3u8.replace('_lhd', '_lsd');
+        currentStreams = { hd: [m3u8], sd: [sdM3u8 !== m3u8 ? sdM3u8 : ''] };
+        document.getElementById('quality-btns').style.display = 'flex';
+        currentQuality = 'hd';
+        playStream(m3u8);
+        showStatus('✅ Ad-Free Stream', 'ok');
+        updateBadge(true);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function showStatus(text, type) {
     const el = document.getElementById('stream-status');
     el.textContent = text;
     el.style.display = 'block';
-    el.className = 'stream-status' + (isAdFree ? ' adfree' : '');
-    
+    el.className = 'stream-status ' + (type || '');
+    setTimeout(() => { el.style.display = 'none'; }, 8000);
+}
+
+function updateBadge(adFree) {
     const badge = document.getElementById('ads-badge');
-    badge.textContent = isAdFree ? '🛡️ ကြော်ငြာမရှိ' : '⚠️ ကြော်ငြာပါ';
-    badge.style.background = isAdFree ? '#28a745' : '#dc3545';
+    if (adFree) {
+        badge.textContent = '🛡️ ကြော်ငြာမရှိ';
+        badge.style.background = '#28a745';
+    } else {
+        badge.textContent = '⚠️ ကြော်ငြာပါ';
+        badge.style.background = '#dc3545';
+    }
 }
 
 // === Matches ===
@@ -330,11 +360,7 @@ async function showMatch(id) {
     document.querySelectorAll('.match-card').forEach(c => c.classList.remove('active'));
 
     try {
-        const [detail, streams] = await Promise.all([
-            api({type:'detail', id}),
-            extractStream(id)
-        ]);
-
+        const detail = await api({type:'detail', id});
         if (!detail.success) return;
         const m = detail.data.match_info;
         const info = document.getElementById('info');
@@ -351,23 +377,37 @@ async function showMatch(id) {
         document.getElementById('i-venue').textContent = v ? `${v.stadium} • ${v.city}` : '';
         info.style.display = 'block';
 
-        if (streams.success && streams.best) {
-            // Ad-free stream via HLS.js
-            currentStreams = streams;
-            document.getElementById('quality-btns').style.display = streams.hd && streams.hd.length > 0 ? 'flex' : 'none';
-            currentQuality = 'hd';
-            playStream(streams.best);
-            showStatus('✅ Ad-Free Stream', true);
-        } else {
-            // Fallback to iframe (has ads)
-            const src = detail.data.sources;
-            if (src && src.length) {
-                currentStreams = null;
-                document.getElementById('quality-btns').style.display = 'none';
-                document.getElementById('placeholder').innerHTML = `<iframe src="${src[0].embedUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
-                document.getElementById('placeholder').style.display = 'block';
-                showStatus('⚠️ ကြော်ငြာပါသည် (m3u8 မရရှိဘဲ)', false);
-            }
+        // Get embed URL from API sources
+        const sources = detail.data.sources || [];
+        
+        // Try streamapi.cc source first (echo) - it has the m3u8 we can intercept
+        const streamapiSource = sources.find(s => s.embedUrl && s.embedUrl.includes('streamapi.cc'));
+        const sport99Source = sources.find(s => s.embedUrl && s.embedUrl.includes('sport99.live'));
+
+        if (streamapiSource) {
+            // Try to intercept m3u8 via Performance API trick
+            showStatus('🔍 Ad-Free stream ရှာနေသည်...', 'warn');
+            const success = await loadStreamAdFree(streamapiSource.embedUrl);
+            
+            if (success) return;
+        }
+
+        // Fallback: try sport99.live source  
+        if (sport99Source) {
+            showStatus('🔍 ဒုတိယနည်းလမ်း စမ်းသပ်နေ...', 'warn');
+            const success = await loadStreamAdFree(sport99Source.embedUrl);
+            
+            if (success) return;
+        }
+
+        // Final fallback: show iframe with ads
+        if (sources.length) {
+            currentStreams = null;
+            document.getElementById('quality-btns').style.display = 'none';
+            document.getElementById('placeholder').innerHTML = `<iframe src="${sources[0].embedUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
+            document.getElementById('placeholder').style.display = 'block';
+            showStatus('⚠️ m3u8 မရဘဲ iframe သုံးရသည် (ကြော်ငြာပါ)', 'err');
+            updateBadge(false);
         }
     } catch(e) {
         console.error('showMatch error:', e);
