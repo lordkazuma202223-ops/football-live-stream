@@ -67,6 +67,28 @@
         .card-meta{display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:#555}
         .loading{text-align:center;padding:20px;color:#555;font-size:12px}
 
+        /* League Filter Tabs */
+        .league-tabs{display:flex;gap:6px;overflow-x:auto;padding:8px 4px 10px;scrollbar-width:none;-ms-overflow-style:none}
+        .league-tabs::-webkit-scrollbar{display:none}
+        .league-tab{flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#999;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;transition:.2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+        .league-tab:hover{background:rgba(233,69,96,.15);color:#e94560;border-color:rgba(233,69,96,.3)}
+        .league-tab.active{background:linear-gradient(135deg,#e94560,#c0392b);color:#fff;border-color:#e94560}
+        .league-tab img{width:16px;height:16px;border-radius:2px}
+        .league-tab .count{background:rgba(0,0,0,.3);padding:1px 6px;border-radius:10px;font-size:9px;margin-left:2px}
+
+        /* League Group Header */
+        .league-group{margin-bottom:14px}
+        .league-group-header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:.2s;border:1px solid transparent}
+        .league-group-header:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.08)}
+        .league-group-header img{width:20px;height:20px;border-radius:3px}
+        .league-group-header .lg-name{font-size:12px;font-weight:700;color:#ddd;flex:1}
+        .league-group-header .lg-country{font-size:10px;color:#666}
+        .league-group-header .lg-count{font-size:10px;color:#e94560;font-weight:600}
+        .league-group-header .lg-toggle{font-size:10px;color:#555;transition:.2s}
+        .league-group-header .lg-toggle.collapsed{transform:rotate(-90deg)}
+        .league-group-body{display:flex;flex-direction:column;gap:8px}
+        .league-group-body.hidden{display:none}
+
         /* Stream status */
         .stream-status{position:absolute;bottom:10px;left:10px;z-index:20;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:4px;font-size:9px;display:none}
         .stream-status.ok{color:#28a745}
@@ -129,6 +151,7 @@
     </div>
 
     <div class="section-title">📋 ယနေ့ ပွဲစဉ်များ</div>
+    <div class="league-tabs" id="league-tabs"></div>
     <div class="match-list" id="match-list"></div>
 </div>
 
@@ -323,6 +346,9 @@ function updateBadge(adFree) {
 }
 
 // === Matches ===
+let allLeagues = [];
+let activeLeague = 'all';
+
 async function loadMatches() {
     const el = document.getElementById('match-list');
     el.innerHTML = '<div class="loading"><div class="spinner" style="margin:0 auto 8px"></div>ရှာဖွေနေသည်...</div>';
@@ -332,43 +358,132 @@ async function loadMatches() {
             api({type:'matches', sport:'football', status:'inprogress'}),
             api({type:'matches', sport:'football', status:'upcoming', date:today})
         ]);
-        const all = [];
-        if (live.success && Array.isArray(live.data)) all.push(...live.data);
-        if (upcoming.success && Array.isArray(upcoming.data)) all.push(...upcoming.data);
+        const raw = [];
+        if (live.success && Array.isArray(live.data)) raw.push(...live.data);
+        if (upcoming.success && Array.isArray(upcoming.data)) raw.push(...upcoming.data);
 
-        if (!all.length) { el.innerHTML = '<div class="loading">ပွဲစဉ်မတွေ့ရှိပါ</div>'; return; }
+        if (!raw.length) {
+            el.innerHTML = '<div class="loading">ပွဲစဉ်မတွေ့ရှိပါ</div>';
+            document.getElementById('league-tabs').innerHTML = '';
+            return;
+        }
 
-        el.innerHTML = '';
-        all.forEach(league => league.matches.forEach(m => {
-            const c = document.createElement('div');
-            c.className = 'match-card' + (m.id === activeMatchId ? ' active' : '');
-            c.onclick = () => showMatch(m.id);
+        // Merge all leagues (deduplicate by name+country)
+        allLeagues = [];
+        const seen = new Set();
+        for (const lg of raw) {
+            const key = lg.league.name + '|' + lg.league.country;
+            if (seen.has(key)) {
+                // Merge matches into existing league
+                const existing = allLeagues.find(l => l.key === key);
+                if (existing) existing.matches.push(...lg.matches);
+            } else {
+                seen.add(key);
+                allLeagues.push({
+                    key,
+                    league: lg.league,
+                    matches: [...lg.matches]
+                });
+            }
+        }
 
+        // Sort leagues: live matches first, then by name
+        allLeagues.sort((a, b) => {
+            const aLive = a.matches.some(m => m.status === 'inprogress') ? 0 : 1;
+            const bLive = b.matches.some(m => m.status === 'inprogress') ? 0 : 1;
+            if (aLive !== bLive) return aLive - bLive;
+            return a.league.name.localeCompare(b.league.name);
+        });
+
+        renderLeagueTabs();
+        renderMatchList();
+
+        // Auto-load first live match
+        if (!activeMatchId) {
+            for (const lg of allLeagues) {
+                const live = lg.matches.find(m => m.status === 'inprogress');
+                if (live) { showMatch(live.id); break; }
+            }
+        }
+    } catch(e) {
+        el.innerHTML = `<div class="loading">❌ ${e.message}</div>`;
+    }
+}
+
+function renderLeagueTabs() {
+    const tabs = document.getElementById('league-tabs');
+    let html = `<div class="league-tab ${activeLeague === 'all' ? 'active' : ''}" onclick="filterLeague('all')">⚽ အားလုံး <span class="count">${allLeagues.reduce((s,l) => s + l.matches.length, 0)}</span></div>`;
+    for (const lg of allLeagues) {
+        const liveCount = lg.matches.filter(m => m.status === 'inprogress').length;
+        const badge = liveCount > 0 ? '🔴' : '';
+        html += `<div class="league-tab ${activeLeague === lg.key ? 'active' : ''}" onclick="filterLeague('${lg.key.replace(/'/g, "\\'")}')">
+            <img src="${lg.league.flag || lg.league.logo}">
+            ${badge} ${lg.league.name}
+            <span class="count">${lg.matches.length}</span>
+        </div>`;
+    }
+    tabs.innerHTML = html;
+}
+
+function filterLeague(key) {
+    activeLeague = key;
+    renderLeagueTabs();
+    renderMatchList();
+}
+
+function renderMatchList() {
+    const el = document.getElementById('match-list');
+    const filtered = activeLeague === 'all' ? allLeagues : allLeagues.filter(l => l.key === activeLeague);
+    let html = '';
+
+    for (const lg of filtered) {
+        const hasLive = lg.matches.some(m => m.status === 'inprogress');
+        const leagueId = lg.key.replace(/[^a-zA-Z0-9]/g, '_');
+
+        // League group header (only show when "all" is selected)
+        if (activeLeague === 'all') {
+            html += `<div class="league-group">
+                <div class="league-group-header" onclick="toggleLeague('${leagueId}')">
+                    <img src="${lg.league.flag || lg.league.logo}">
+                    <span class="lg-name">${lg.league.name}</span>
+                    <span class="lg-country">${lg.league.country}</span>
+                    ${hasLive ? '<span class="lg-count">● LIVE</span>' : ''}
+                    <span class="lg-count">${lg.matches.length} ပွဲ</span>
+                    <span class="lg-toggle" id="toggle-${leagueId}">▼</span>
+                </div>
+                <div class="league-group-body" id="body-${leagueId}">`;
+        } else {
+            html += `<div class="league-group"><div class="league-group-body">`;
+        }
+
+        for (const m of lg.matches) {
             const sc = m.status === 'inprogress' ? 'st-live' : m.status === 'finished' ? 'st-ft' : 'st-up';
             const st = getStatus(m.status, m.status_detail);
-
-            c.innerHTML = `
+            html += `<div class="match-card${m.id === activeMatchId ? ' active' : ''}" onclick="showMatch('${m.id}')">
                 <div class="card-teams">
                     <div class="card-team"><img src="${m.teams.home.badge}"><span>${m.teams.home.name}</span></div>
                     <div class="card-score">${m.score.display||'VS'}</div>
                     <div class="card-team" style="flex-direction:row-reverse"><img src="${m.teams.away.badge}"><span>${m.teams.away.name}</span></div>
                 </div>
                 <div class="card-meta">
-                    <span>${league.league.name} • ${league.league.country}</span>
+                    <span>${lg.league.name} • ${lg.league.country}</span>
                     <span class="status ${sc}" style="font-size:9px">${st}</span>
-                </div>`;
-            el.appendChild(c);
-        }));
-
-        // Auto-load first live match
-        if (!activeMatchId) {
-            for (const l of all) {
-                const live = l.matches.find(m => m.status === 'inprogress');
-                if (live) { showMatch(live.id); break; }
-            }
+                </div>
+            </div>`;
         }
-    } catch(e) {
-        el.innerHTML = `<div class="loading">❌ ${e.message}</div>`;
+
+        html += '</div></div>';
+    }
+
+    el.innerHTML = html || '<div class="loading">ပွဲစဉ်မတွေ့ရှိပါ</div>';
+}
+
+function toggleLeague(id) {
+    const body = document.getElementById('body-' + id);
+    const toggle = document.getElementById('toggle-' + id);
+    if (body && toggle) {
+        body.classList.toggle('hidden');
+        toggle.classList.toggle('collapsed');
     }
 }
 
