@@ -289,29 +289,26 @@ function killIframe() {
 
 // === Stream Loading ===
 async function loadStreamAdFree(embedUrl) {
-    showStatus('🔍 m3u8 ရှာဖွေနေသည်...', 'warn');
+    showStatus('🔍 m3u8 ရှာဖွေနေသည်... (10s)', 'warn');
     
-    // Start interceptor
-    const m3u8Promise = startM3u8Interceptor(20000);
+    // Start interceptor with shorter timeout
+    const m3u8Promise = startM3u8Interceptor(10000);
 
-    // Load iframe into hidden trap - NO sandbox (breaks m3u8 detection)
-    // Instead we block window.open and kill iframe ASAP
+    // Load iframe into hidden trap
     iframeTrap.innerHTML = `<iframe src="${embedUrl}" width="1" height="1" frameborder="0" allow="encrypted-media" allowfullscreen></iframe>`;
 
-    // Wait for m3u8 to be intercepted
+    // Wait for m3u8
     const m3u8 = await m3u8Promise;
 
-    // Kill the iframe immediately to stop ads from loading further
+    // Kill iframe immediately
     killIframe();
 
     if (m3u8) {
-        // Success! Play ad-free
         const sdM3u8 = m3u8.replace('_lhd', '_lsd');
         currentStreams = { hd: [m3u8], sd: [sdM3u8 !== m3u8 ? sdM3u8 : ''] };
         document.getElementById('quality-btns').style.display = 'flex';
         currentQuality = 'hd';
         
-        // Clear placeholder completely and hide it
         const ph = document.getElementById('placeholder');
         ph.innerHTML = '';
         ph.style.display = 'none';
@@ -493,11 +490,12 @@ function stopCurrentStream() {
     video.pause();
     video.removeAttribute('src');
     video.load();
+    video.style.display = '';  // Show video element again
 
     // Kill any hidden iframe trap
     killIframe();
 
-    // Clear placeholder
+    // Clear placeholder and show loading state
     const ph = document.getElementById('placeholder');
     ph.innerHTML = '<div style="text-align:center"><div style="font-size:40px;margin-bottom:10px">⚽</div><p style="font-size:13px;color:#555">ခဏစောင့်ပါ...</p></div>';
     ph.style.display = 'flex';
@@ -541,34 +539,38 @@ async function showMatch(id) {
         // Get embed URL from API sources
         const sources = detail.data.sources || [];
         
-        // Try streamapi.cc source first (echo) - it has the m3u8 we can intercept
+        // Try ad-free: streamapi.cc first, then sport99.live
         const streamapiSource = sources.find(s => s.embedUrl && s.embedUrl.includes('streamapi.cc'));
         const sport99Source = sources.find(s => s.embedUrl && s.embedUrl.includes('sport99.live'));
 
         if (streamapiSource) {
-            // Try to intercept m3u8 via Performance API trick
             showStatus('🔍 Ad-Free stream ရှာနေသည်...', 'warn');
             const success = await loadStreamAdFree(streamapiSource.embedUrl);
-            
             if (success) return;
         }
 
-        // Fallback: try sport99.live source  
         if (sport99Source) {
             showStatus('🔍 ဒုတိယနည်းလမ်း စမ်းသပ်နေ...', 'warn');
             const success = await loadStreamAdFree(sport99Source.embedUrl);
-            
             if (success) return;
         }
 
-        // Final fallback: show iframe with ads
+        // Fallback: show iframe embed (works but has ads)
         if (sources.length) {
             currentStreams = null;
             document.getElementById('quality-btns').style.display = 'none';
-            document.getElementById('placeholder').innerHTML = `<iframe src="${sources[0].embedUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
-            document.getElementById('placeholder').style.display = 'block';
-            showStatus('⚠️ m3u8 မရဘဲ iframe သုံးရသည် (ကြော်ငြာပါ)', 'err');
+            document.getElementById('loading').classList.remove('active');
+            const ph = document.getElementById('placeholder');
+            ph.innerHTML = '';
+            ph.innerHTML = `<iframe src="${sources[0].embedUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
+            ph.style.display = 'block';
+            // Hide video player since we're using iframe
+            video.style.display = 'none';
+            showStatus('📺 Stream ဖွင့်နေသည်...', 'warn');
             updateBadge(false);
+        } else {
+            document.getElementById('loading').classList.remove('active');
+            showStatus('❌ Stream မရှိပါ', 'err');
         }
     } catch(e) {
         console.error('showMatch error:', e);
