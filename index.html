@@ -95,12 +95,45 @@
         .stream-status.warn{color:#ffc107}
         .stream-status.err{color:#dc3545}
 
+        /* Code Wall Overlay */
+        .code-wall-overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+        .code-wall-overlay.active{display:flex}
+        .code-wall-modal{background:linear-gradient(135deg,#0f0f1aee,#1a1a2eee);border:1px solid rgba(233,69,96,.3);border-radius:16px;padding:28px 24px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(233,69,96,.15);animation:cwFadeIn .4s ease}
+        @keyframes cwFadeIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+        .cw-lock{font-size:36px;margin-bottom:8px;display:block}
+        .cw-title{font-size:18px;font-weight:800;color:#e94560;margin-bottom:6px;letter-spacing:1px}
+        .cw-subtitle{font-size:12px;color:#888;margin-bottom:18px}
+        .cw-input-wrap{position:relative;margin-bottom:12px}
+        .cw-input{width:100%;padding:12px 16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:#fff;font-size:14px;text-align:center;letter-spacing:2px;font-weight:700;outline:none;transition:.3s;text-transform:uppercase}
+        .cw-input:focus{border-color:#e94560;box-shadow:0 0 16px rgba(233,69,96,.2)}
+        .cw-input::placeholder{color:#555;letter-spacing:0;font-weight:400;text-transform:none}
+        .cw-btn{width:100%;padding:12px;background:linear-gradient(135deg,#e94560,#c0392b);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.2s;margin-bottom:10px}
+        .cw-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(233,69,96,.4)}
+        .cw-btn:active{transform:translateY(0)}
+        .cw-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .cw-error{color:#e94560;font-size:11px;margin-bottom:8px;min-height:16px;transition:.3s}
+        .cw-success{color:#28a745;font-size:13px;font-weight:700;margin-bottom:8px;min-height:16px;animation:cwSuccessPop .3s ease}
+        @keyframes cwSuccessPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+        .cw-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:#555;font-size:11px}
+        .cw-divider::before,.cw-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.1)}
+        .cw-alt-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#ccc;font-size:12px;cursor:pointer;transition:.2s;margin-bottom:8px;text-decoration:none}
+        .cw-alt-btn:hover{background:rgba(233,69,96,.1);border-color:rgba(233,69,96,.3);color:#fff}
+        .cw-alt-btn.premium:hover{background:rgba(255,215,0,.1);border-color:rgba(255,215,0,.3)}
+        .cw-footer{margin-top:12px;font-size:10px;color:#555}
+        .cw-footer a{color:#e94560;text-decoration:none}
+        .cw-shake{animation:cwShake .5s ease}
+        @keyframes cwShake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-4px)}20%,40%,60%,80%{transform:translateX(4px)}}
+        .player-lock-icon{position:absolute;top:10px;left:10px;z-index:55;background:rgba(233,69,96,.9);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;display:none;animation:cwFadeIn .3s ease}
+
         @media(max-width:600px){
             .header{padding:10px 14px}
             .brand{font-size:16px}
             .container{padding:10px}
             .card-team{font-size:11px}
             .card-score{font-size:12px;min-width:40px}
+            .code-wall-modal{padding:22px 18px}
+            .cw-title{font-size:16px}
+            .cw-input{font-size:13px;padding:10px 14px}
         }
     </style>
 </head>
@@ -132,6 +165,29 @@
             <button class="q-btn" onclick="setQuality('sd')">SD</button>
         </div>
         <div class="stream-status" id="stream-status"></div>
+        <div class="player-lock-icon" id="player-lock">🔒 ကုဒ်ထည့်ပါ</div>
+
+        <!-- Code Wall Overlay -->
+        <div class="code-wall-overlay" id="code-wall">
+            <div class="code-wall-modal" id="cw-modal">
+                <span class="cw-lock">🔒</span>
+                <div class="cw-title">CODE WALL</div>
+                <div class="cw-subtitle">ပွဲစဉ်ကြည့်ရန် ကုဒ်နံပါတ် ထည့်ပါ</div>
+                <div class="cw-input-wrap">
+                    <input type="text" class="cw-input" id="cw-input" placeholder="ကုဒ်နံပါတ် ထည့်ပါ..." maxlength="20" autocomplete="off">
+                </div>
+                <div id="cw-message"></div>
+                <button class="cw-btn" id="cw-submit" onclick="submitCode()">ကုဒ်စစ်ဆေးပါ</button>
+                <div class="cw-divider">သို့မဟုတ်</div>
+                <a class="cw-alt-btn" href="https://example.com/ad" target="_blank" rel="noopener" onclick="watchAd()">
+                    📺 ကြော်ငြာကြည့် → ကုဒ် အခမဲ့ရယူ
+                </a>
+                <a class="cw-alt-btn premium" href="https://t.me/yourchannel" target="_blank" rel="noopener">
+                    🛡️ Premium ဝယ်ယူ (30 ရက်)
+                </a>
+                <div class="cw-footer">💬 Telegram: <a href="https://t.me/yourchannel" target="_blank" rel="noopener">@yourchannel</a></div>
+            </div>
+        </div>
     </div>
 
     <!-- Hidden iframe for m3u8 interception -->
@@ -511,8 +567,134 @@ function stopCurrentStream() {
     document.querySelector('.q-btn')?.classList.add('active');
 }
 
+// === Code Wall ===
+const CODE_API = '/api/code';
+let pendingMatchId = null;
+let pendingMatchData = null;
+
+function getStoredCode() {
+    try {
+        const data = localStorage.getItem('cw_code');
+        if (!data) return null;
+        const parsed = JSON.parse(data);
+        // Check if expired
+        if (parsed.expiresAt && Date.now() < new Date(parsed.expiresAt).getTime()) {
+            return parsed;
+        }
+        // Expired, remove
+        localStorage.removeItem('cw_code');
+        return null;
+    } catch { return null; }
+}
+
+function setStoredCode(code, type, expiresAt) {
+    localStorage.setItem('cw_code', JSON.stringify({ code, type, expiresAt }));
+}
+
+function showCodeWall(matchId) {
+    pendingMatchId = matchId;
+    document.getElementById('code-wall').classList.add('active');
+    document.getElementById('player-lock').style.display = 'block';
+    document.getElementById('cw-message').innerHTML = '';
+    document.getElementById('cw-input').value = '';
+    document.getElementById('cw-input').focus();
+}
+
+function hideCodeWall() {
+    document.getElementById('code-wall').classList.remove('active');
+    document.getElementById('player-lock').style.display = 'none';
+    document.getElementById('cw-message').innerHTML = '';
+}
+
+async function submitCode() {
+    const input = document.getElementById('cw-input');
+    const code = input.value.trim();
+    const msgEl = document.getElementById('cw-message');
+    const btn = document.getElementById('cw-submit');
+
+    if (!code) {
+        msgEl.innerHTML = '<div class="cw-error">⚠️ ကုဒ်နံပါတ် ထည့်ပါ</div>';
+        input.classList.add('cw-shake');
+        setTimeout(() => input.classList.remove('cw-shake'), 500);
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'စစ်ဆေးနေသည်...';
+    msgEl.innerHTML = '';
+
+    try {
+        const resp = await fetch(CODE_API + '?action=validate&code=' + encodeURIComponent(code));
+        const data = await resp.json();
+
+        if (data.valid) {
+            // Success!
+            setStoredCode(code, data.type, data.expiresAt);
+            msgEl.innerHTML = '<div class="cw-success">✅ ကုဒ်မှန်ကန်ပါတယ်</div>';
+
+            setTimeout(() => {
+                hideCodeWall();
+                // Continue loading the match that was pending
+                if (pendingMatchId && pendingMatchData) {
+                    continueShowMatch(pendingMatchId, pendingMatchData);
+                } else if (pendingMatchId) {
+                    showMatch(pendingMatchId);
+                }
+            }, 1000);
+        } else {
+            // Invalid code
+            msgEl.innerHTML = '<div class="cw-error">❌ ကုဒ်မမှန်ကန်ပါ။ ထပ်စမ်းကြည့်ပါ။</div>';
+            input.classList.add('cw-shake');
+            setTimeout(() => input.classList.remove('cw-shake'), 500);
+            input.value = '';
+            input.focus();
+        }
+    } catch (e) {
+        msgEl.innerHTML = '<div class="cw-error">❌ ဆက်သွယ်မှု အမှားရှိနေသည်။</div>';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'ကုဒ်စစ်ဆေးပါ';
+    }
+}
+
+function watchAd() {
+    // After user clicks watch ad, the placeholder URL opens in new tab.
+    // The ad/locker page should eventually reveal the current free code.
+    // User will come back and enter it manually.
+}
+
+// Handle Enter key on input
+document.addEventListener('DOMContentLoaded', () => {
+    const cwInput = document.getElementById('cw-input');
+    if (cwInput) {
+        cwInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitCode();
+        });
+    }
+});
+
 async function showMatch(id) {
-    // Immediately stop previous stream
+    // Check code wall first
+    const stored = getStoredCode();
+    if (!stored) {
+        // Need to show code wall, but first fetch match data so we can play after
+        stopCurrentStream();
+        activeMatchId = id;
+        document.querySelectorAll('.match-card').forEach(c => c.classList.remove('active'));
+
+        try {
+            const detail = await api({type:'detail', id});
+            if (!detail.success) return;
+            pendingMatchData = detail;
+            showCodeWall(id);
+        } catch(e) {
+            console.error('showMatch preload error:', e);
+            showCodeWall(id);
+        }
+        return;
+    }
+
+    // Code is valid, proceed normally
     stopCurrentStream();
 
     activeMatchId = id;
@@ -521,59 +703,64 @@ async function showMatch(id) {
     try {
         const detail = await api({type:'detail', id});
         if (!detail.success) return;
-        const m = detail.data.match_info;
-        const info = document.getElementById('info');
-
-        document.getElementById('i-league').innerHTML = `<img src="${m.league.flag}"><span>${m.league.name} • ${m.league.country}</span>`;
-        document.getElementById('i-status').textContent = getStatus(m.status, m.status_detail);
-        document.getElementById('i-h-badge').src = m.teams.home.badge;
-        document.getElementById('i-h-name').textContent = m.teams.home.name;
-        document.getElementById('i-a-badge').src = m.teams.away.badge;
-        document.getElementById('i-a-name').textContent = m.teams.away.name;
-        document.getElementById('i-score').textContent = m.score.display;
-
-        const v = detail.data.info?.venue;
-        document.getElementById('i-venue').textContent = v ? `${v.stadium} • ${v.city}` : '';
-        info.style.display = 'block';
-
-        // Get embed URL from API sources
-        const sources = detail.data.sources || [];
-        
-        // Try ad-free: streamapi.cc first, then sport99.live
-        const streamapiSource = sources.find(s => s.embedUrl && s.embedUrl.includes('streamapi.cc'));
-        const sport99Source = sources.find(s => s.embedUrl && s.embedUrl.includes('sport99.live'));
-
-        if (streamapiSource) {
-            showStatus('🔍 Ad-Free stream ရှာနေသည်...', 'warn');
-            const success = await loadStreamAdFree(streamapiSource.embedUrl);
-            if (success) return;
-        }
-
-        if (sport99Source) {
-            showStatus('🔍 ဒုတိယနည်းလမ်း စမ်းသပ်နေ...', 'warn');
-            const success = await loadStreamAdFree(sport99Source.embedUrl);
-            if (success) return;
-        }
-
-        // Fallback: show iframe embed (works but has ads)
-        if (sources.length) {
-            currentStreams = null;
-            document.getElementById('quality-btns').style.display = 'none';
-            document.getElementById('loading').classList.remove('active');
-            const ph = document.getElementById('placeholder');
-            ph.innerHTML = '';
-            ph.innerHTML = `<iframe src="${sources[0].embedUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
-            ph.style.display = 'block';
-            // Hide video player since we're using iframe
-            video.style.display = 'none';
-            showStatus('📺 Stream ဖွင့်နေသည်...', 'warn');
-            updateBadge(false);
-        } else {
-            document.getElementById('loading').classList.remove('active');
-            showStatus('❌ Stream မရှိပါ', 'err');
-        }
+        continueShowMatch(id, detail);
     } catch(e) {
         console.error('showMatch error:', e);
+    }
+}
+
+// The actual match loading logic (called after code validation)
+async function continueShowMatch(id, detail) {
+    const m = detail.data.match_info;
+    const info = document.getElementById('info');
+
+    document.getElementById('i-league').innerHTML = `<img src="${m.league.flag}"><span>${m.league.name} • ${m.league.country}</span>`;
+    document.getElementById('i-status').textContent = getStatus(m.status, m.status_detail);
+    document.getElementById('i-h-badge').src = m.teams.home.badge;
+    document.getElementById('i-h-name').textContent = m.teams.home.name;
+    document.getElementById('i-a-badge').src = m.teams.away.badge;
+    document.getElementById('i-a-name').textContent = m.teams.away.name;
+    document.getElementById('i-score').textContent = m.score.display;
+
+    const v = detail.data.info?.venue;
+    document.getElementById('i-venue').textContent = v ? `${v.stadium} • ${v.city}` : '';
+    info.style.display = 'block';
+
+    // Get embed URL from API sources
+    const sources = detail.data.sources || [];
+    
+    // Try ad-free: streamapi.cc first, then sport99.live
+    const streamapiSource = sources.find(s => s.embedUrl && s.embedUrl.includes('streamapi.cc'));
+    const sport99Source = sources.find(s => s.embedUrl && s.embedUrl.includes('sport99.live'));
+
+    if (streamapiSource) {
+        showStatus('🔍 Ad-Free stream ရှာနေသည်...', 'warn');
+        const success = await loadStreamAdFree(streamapiSource.embedUrl);
+        if (success) return;
+    }
+
+    if (sport99Source) {
+        showStatus('🔍 ဒုတိယနည်းလမ်း စမ်းသပ်နေ...', 'warn');
+        const success = await loadStreamAdFree(sport99Source.embedUrl);
+        if (success) return;
+    }
+
+    // Fallback: show iframe embed (works but has ads)
+    if (sources.length) {
+        currentStreams = null;
+        document.getElementById('quality-btns').style.display = 'none';
+        document.getElementById('loading').classList.remove('active');
+        const ph = document.getElementById('placeholder');
+        ph.innerHTML = '';
+        ph.innerHTML = `<iframe src="${sources[0].embedUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
+        ph.style.display = 'block';
+        // Hide video player since we're using iframe
+        video.style.display = 'none';
+        showStatus('📺 Stream ဖွင့်နေသည်...', 'warn');
+        updateBadge(false);
+    } else {
+        document.getElementById('loading').classList.remove('active');
+        showStatus('❌ Stream မရှိပါ', 'err');
     }
 }
 
