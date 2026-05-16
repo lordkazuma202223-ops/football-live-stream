@@ -487,7 +487,36 @@ function toggleLeague(id) {
     }
 }
 
+function stopCurrentStream() {
+    // Destroy HLS player immediately
+    if (hls) { hls.destroy(); hls = null; }
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+
+    // Kill any hidden iframe trap
+    killIframe();
+
+    // Clear placeholder
+    const ph = document.getElementById('placeholder');
+    ph.innerHTML = '<div style="text-align:center"><div style="font-size:40px;margin-bottom:10px">⚽</div><p style="font-size:13px;color:#555">ခဏစောင့်ပါ...</p></div>';
+    ph.style.display = 'flex';
+
+    // Show loading spinner
+    document.getElementById('loading').classList.add('active');
+
+    // Reset quality & streams
+    currentStreams = null;
+    currentQuality = 'hd';
+    document.getElementById('quality-btns').style.display = 'none';
+    document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.q-btn')?.classList.add('active');
+}
+
 async function showMatch(id) {
+    // Immediately stop previous stream
+    stopCurrentStream();
+
     activeMatchId = id;
     document.querySelectorAll('.match-card').forEach(c => c.classList.remove('active'));
 
