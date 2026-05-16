@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>⚽ ဘစ်ကြီး - ဘောလုံးတိုက်ရိုက်ကြည့်</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{background:#0a0a0f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
@@ -13,7 +12,6 @@
         .header-left{display:flex;align-items:center;gap:10px}
         .brand{font-size:20px;font-weight:900;background:linear-gradient(90deg,#e94560,#ff6b6b,#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1px}
         .brand-icon{font-size:22px}
-        .no-ads{background:#28a745;color:#fff;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:bold;display:flex;align-items:center;gap:4px}
         .live-badge{background:#e94560;color:#fff;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:bold;animation:pulse 1.5s infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
         .header-btns{display:flex;gap:8px;align-items:center}
@@ -22,43 +20,11 @@
 
         .container{max-width:1100px;margin:0 auto;padding:14px}
 
-        /* Player */
-        .player-box{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden;box-shadow:0 6px 24px rgba(233,69,96,.1);margin-bottom:14px}
-        .player-box video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000}
-        .player-placeholder{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#111;color:#444;z-index:5}
-        .player-loading{position:absolute;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:10}
-        .player-loading.active{display:flex}
-        .spinner{width:40px;height:40px;border:3px solid #222;border-top-color:#e94560;border-radius:50%;animation:spin .8s linear infinite}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .quality-btns{position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:6px}
-        .q-btn{background:rgba(0,0,0,.7);color:#ccc;border:1px solid rgba(255,255,255,.2);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;transition:.2s}
-        .q-btn:hover,.q-btn.active{background:#e94560;color:#fff;border-color:#e94560}
-
-        /* Hidden iframe trap */
-        .iframe-trap{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}
-
-        /* Match Info */
-        .match-info{background:linear-gradient(135deg,#0f0f1a,#1a1a2e);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid rgba(233,69,96,.15);display:none}
-        .match-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-        .league-info{display:flex;align-items:center;gap:8px;font-size:11px;color:#666}
-        .league-info img{width:20px;height:20px;border-radius:3px}
-        .status{font-size:10px;padding:3px 8px;border-radius:16px;font-weight:600}
-        .st-live{background:rgba(233,69,96,.2);color:#e94560}
-        .st-up{background:rgba(52,152,219,.2);color:#3498db}
-        .st-ft{background:rgba(149,165,166,.2);color:#95a5a6}
-        .teams-row{display:flex;align-items:center;justify-content:center;gap:20px;padding:10px 0}
-        .team{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:90px}
-        .team img{width:40px;height:40px}
-        .team-name{font-size:12px;font-weight:600;text-align:center}
-        .score{font-size:24px;font-weight:900;color:#e94560;min-width:60px;text-align:center}
-        .venue{font-size:10px;color:#555;text-align:center}
-
         /* Match List */
         .section-title{font-size:12px;color:#888;margin-bottom:8px;padding:0 4px;display:flex;align-items:center;gap:6px}
         .match-list{display:flex;flex-direction:column;gap:8px}
         .match-card{background:linear-gradient(135deg,#0f0f1a,#1a1a2e);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;cursor:pointer;transition:.2s}
         .match-card:hover{border-color:rgba(233,69,96,.4);transform:translateY(-1px)}
-        .match-card.active{border-color:#e94560;background:linear-gradient(135deg,#1a0a15,#2a1a2e)}
         .card-teams{display:flex;align-items:center;justify-content:space-between}
         .card-team{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;min-width:0;flex:1}
         .card-team img{width:24px;height:24px;flex-shrink:0}
@@ -89,19 +55,16 @@
         .league-group-body{display:flex;flex-direction:column;gap:8px}
         .league-group-body.hidden{display:none}
 
-        /* Stream status */
-        .stream-status{position:absolute;bottom:10px;left:10px;z-index:20;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:4px;font-size:9px;display:none}
-        .stream-status.ok{color:#28a745}
-        .stream-status.warn{color:#ffc107}
-        .stream-status.err{color:#dc3545}
-
-        /* Code Wall Overlay */
-        .code-wall-overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+        /* Code Wall - Full Page Overlay (NOT inside player) */
+        .code-wall-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
         .code-wall-overlay.active{display:flex}
         .code-wall-modal{background:linear-gradient(135deg,#0f0f1aee,#1a1a2eee);border:1px solid rgba(233,69,96,.3);border-radius:16px;padding:28px 24px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(233,69,96,.15);animation:cwFadeIn .4s ease}
         @keyframes cwFadeIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
         .cw-lock{font-size:36px;margin-bottom:8px;display:block}
         .cw-title{font-size:18px;font-weight:800;color:#e94560;margin-bottom:6px;letter-spacing:1px}
+        .cw-match-preview{font-size:12px;color:#ccc;margin-bottom:14px;padding:8px;background:rgba(255,255,255,.05);border-radius:8px}
+        .cw-match-preview .teams{font-weight:700;color:#fff;font-size:14px;margin-bottom:2px}
+        .cw-match-preview .league{color:#888;font-size:10px}
         .cw-subtitle{font-size:12px;color:#888;margin-bottom:18px}
         .cw-input-wrap{position:relative;margin-bottom:12px}
         .cw-input{width:100%;padding:12px 16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:#fff;font-size:14px;text-align:center;letter-spacing:2px;font-weight:700;outline:none;transition:.3s;text-transform:uppercase}
@@ -111,7 +74,7 @@
         .cw-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(233,69,96,.4)}
         .cw-btn:active{transform:translateY(0)}
         .cw-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-        .cw-error{color:#e94560;font-size:11px;margin-bottom:8px;min-height:16px;transition:.3s}
+        .cw-error{color:#e94560;font-size:11px;margin-bottom:8px;min-height:16px}
         .cw-success{color:#28a745;font-size:13px;font-weight:700;margin-bottom:8px;min-height:16px;animation:cwSuccessPop .3s ease}
         @keyframes cwSuccessPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
         .cw-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:#555;font-size:11px}
@@ -123,7 +86,11 @@
         .cw-footer a{color:#e94560;text-decoration:none}
         .cw-shake{animation:cwShake .5s ease}
         @keyframes cwShake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-4px)}20%,40%,60%,80%{transform:translateX(4px)}}
-        .player-lock-icon{position:absolute;top:10px;left:10px;z-index:55;background:rgba(233,69,96,.9);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;display:none;animation:cwFadeIn .3s ease}
+        .cw-close{position:absolute;top:12px;right:16px;font-size:20px;color:#555;cursor:pointer;transition:.2s;background:none;border:none}
+        .cw-close:hover{color:#e94560}
+
+        .spinner{width:24px;height:24px;border:2px solid #222;border-top-color:#e94560;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+        @keyframes spin{to{transform:rotate(360deg)}}
 
         @media(max-width:600px){
             .header{padding:10px 14px}
@@ -142,7 +109,6 @@
     <div class="header-left">
         <span class="brand-icon">⚽</span>
         <span class="brand">ဘစ်ကြီး</span>
-        <span class="no-ads" id="ads-badge">🛡️ ကြော်ငြာမရှိ</span>
     </div>
     <div class="header-btns">
         <span class="live-badge">● တိုက်ရိုက်</span>
@@ -151,76 +117,42 @@
 </div>
 
 <div class="container">
-    <div class="player-box">
-        <video id="video" controls playsinline></video>
-        <div class="player-placeholder" id="placeholder">
-            <div style="text-align:center">
-                <div style="font-size:40px;margin-bottom:10px">⚽</div>
-                <p style="font-size:13px">ပွဲစဉ်တစ်ခုခု ရွေးချယ်ပါ</p>
-            </div>
-        </div>
-        <div class="player-loading" id="loading"><div class="spinner"></div></div>
-        <div class="quality-btns" id="quality-btns" style="display:none">
-            <button class="q-btn active" onclick="setQuality('hd')">HD</button>
-            <button class="q-btn" onclick="setQuality('sd')">SD</button>
-        </div>
-        <div class="stream-status" id="stream-status"></div>
-        <div class="player-lock-icon" id="player-lock">🔒 ကုဒ်ထည့်ပါ</div>
-
-        <!-- Code Wall Overlay -->
-        <div class="code-wall-overlay" id="code-wall">
-            <div class="code-wall-modal" id="cw-modal">
-                <span class="cw-lock">🔒</span>
-                <div class="cw-title">CODE WALL</div>
-                <div class="cw-subtitle">ပွဲစဉ်ကြည့်ရန် ကုဒ်နံပါတ် ထည့်ပါ</div>
-                <div class="cw-input-wrap">
-                    <input type="text" class="cw-input" id="cw-input" placeholder="ကုဒ်နံပါတ် ထည့်ပါ..." maxlength="20" autocomplete="off">
-                </div>
-                <div id="cw-message"></div>
-                <button class="cw-btn" id="cw-submit" onclick="submitCode()">ကုဒ်စစ်ဆေးပါ</button>
-                <div class="cw-divider">သို့မဟုတ်</div>
-                <a class="cw-alt-btn" href="https://example.com/ad" target="_blank" rel="noopener" onclick="watchAd()">
-                    📺 ကြော်ငြာကြည့် → ကုဒ် အခမဲ့ရယူ
-                </a>
-                <a class="cw-alt-btn premium" href="https://t.me/yourchannel" target="_blank" rel="noopener">
-                    🛡️ Premium ဝယ်ယူ (30 ရက်)
-                </a>
-                <div class="cw-footer">💬 Telegram: <a href="https://t.me/yourchannel" target="_blank" rel="noopener">@yourchannel</a></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Hidden iframe for m3u8 interception -->
-    <div class="iframe-trap" id="iframe-trap"></div>
-
-    <div class="match-info" id="info">
-        <div class="match-header">
-            <div class="league-info" id="i-league"></div>
-            <span class="status st-live" id="i-status"></span>
-        </div>
-        <div class="teams-row">
-            <div class="team"><img id="i-h-badge"><span class="team-name" id="i-h-name"></span></div>
-            <div class="score" id="i-score"></div>
-            <div class="team"><img id="i-a-badge"><span class="team-name" id="i-a-name"></span></div>
-        </div>
-        <div class="venue" id="i-venue"></div>
-    </div>
-
     <div class="section-title">📋 ယနေ့ ပွဲစဉ်များ</div>
     <div class="league-tabs" id="league-tabs"></div>
     <div class="match-list" id="match-list"></div>
 </div>
 
+<!-- Code Wall - Full Page Overlay (outside player) -->
+<div class="code-wall-overlay" id="code-wall">
+    <div class="code-wall-modal" id="cw-modal" style="position:relative">
+        <button class="cw-close" onclick="closeCodeWall()">✕</button>
+        <span class="cw-lock">🔒</span>
+        <div class="cw-title">CODE WALL</div>
+        <div class="cw-match-preview" id="cw-preview" style="display:none">
+            <div class="teams" id="cw-teams"></div>
+            <div class="league" id="cw-league"></div>
+        </div>
+        <div class="cw-subtitle">ပွဲစဉ်ကြည့်ရန် ကုဒ်နံပါတ် ထည့်ပါ</div>
+        <div class="cw-input-wrap">
+            <input type="text" class="cw-input" id="cw-input" placeholder="ကုဒ်နံပါတ် ထည့်ပါ..." maxlength="20" autocomplete="off">
+        </div>
+        <div id="cw-message"></div>
+        <button class="cw-btn" id="cw-submit" onclick="submitCode()">ကုဒ်စစ်ဆေးပါ</button>
+        <div class="cw-divider">သို့မဟုတ်</div>
+        <a class="cw-alt-btn" href="https://t.me/yourchannel" target="_blank" rel="noopener">
+            📺 ကြော်ငြာကြည့် → ကုဒ် အခမဲ့ရယူ
+        </a>
+        <a class="cw-alt-btn premium" href="https://t.me/yourchannel" target="_blank" rel="noopener">
+            🛡️ Premium ဝယ်ယူ (30 ရက်)
+        </a>
+        <div class="cw-footer">💬 Telegram: <a href="https://t.me/yourchannel" target="_blank" rel="noopener">@yourchannel</a></div>
+    </div>
+</div>
+
 <script>
 const API_PROXY = '/api/matches';
-const video = document.getElementById('video');
-const iframeTrap = document.getElementById('iframe-trap');
-let hls = null;
-let currentStreams = null;
-let currentQuality = 'hd';
-let activeMatchId = null;
-let interceptorActive = false;
-let foundM3u8 = null;
+const CODE_API = '/api/code';
+let pendingMatchId = null;
 
 // Status translations
 const statusMap = {
@@ -246,155 +178,134 @@ async function api(params) {
     return r.json();
 }
 
-// === Player ===
-function playStream(url) {
-    document.getElementById('placeholder').style.display = 'none';
-    document.getElementById('loading').classList.add('active');
+// === Code Wall ===
+function getStoredCode() {
+    try {
+        const data = localStorage.getItem('cw_code');
+        if (!data) return null;
+        const parsed = JSON.parse(data);
+        if (parsed.expiresAt && Date.now() < new Date(parsed.expiresAt).getTime()) {
+            return parsed;
+        }
+        localStorage.removeItem('cw_code');
+        return null;
+    } catch { return null; }
+}
 
-    if (hls) { hls.destroy(); hls = null; }
+function showCodeWall(matchId, matchData) {
+    pendingMatchId = matchId;
+    document.getElementById('code-wall').classList.add('active');
+    document.getElementById('cw-message').innerHTML = '';
+    document.getElementById('cw-input').value = '';
 
-    if (Hls.isSupported()) {
-        hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, startLevel: -1 });
-        hls.loadSource(url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            document.getElementById('loading').classList.remove('active');
-            video.play().catch(() => {});
-        });
-        hls.on(Hls.Events.ERROR, (e, data) => {
-            if (data.fatal) {
-                if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                    if (currentQuality === 'hd' && currentStreams && currentStreams.sd && currentStreams.sd.length) {
-                        setQuality('sd');
-                    } else {
-                        hls.startLoad();
-                    }
+    // Show match preview
+    if (matchData) {
+        document.getElementById('cw-preview').style.display = 'block';
+        document.getElementById('cw-teams').textContent = matchData.teams.home.name + ' vs ' + matchData.teams.away.name;
+        document.getElementById('cw-league').textContent = matchData.league.name + ' • ' + matchData.league.country;
+    }
+
+    setTimeout(() => document.getElementById('cw-input').focus(), 100);
+}
+
+function closeCodeWall() {
+    document.getElementById('code-wall').classList.remove('active');
+    pendingMatchId = null;
+}
+
+async function submitCode() {
+    const input = document.getElementById('cw-input');
+    const code = input.value.trim();
+    const msgEl = document.getElementById('cw-message');
+    const btn = document.getElementById('cw-submit');
+
+    if (!code) {
+        msgEl.innerHTML = '<div class="cw-error">⚠️ ကုဒ်နံပါတ် ထည့်ပါ</div>';
+        input.classList.add('cw-shake');
+        setTimeout(() => input.classList.remove('cw-shake'), 500);
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'စစ်ဆေးနေသည်...';
+    msgEl.innerHTML = '';
+
+    try {
+        const resp = await fetch(CODE_API + '?action=validate&code=' + encodeURIComponent(code));
+        const data = await resp.json();
+
+        if (data.valid) {
+            setStoredCode(code, data.type, data.expiresAt);
+            msgEl.innerHTML = '<div class="cw-success">✅ ကုဒ်မှန်ကန်ပါတယ်! Player သို့ ပို့နေသည်...</div>';
+
+            setTimeout(() => {
+                // Redirect to player page with match ID and token
+                window.location.href = '/player?id=' + encodeURIComponent(pendingMatchId) + '&token=' + encodeURIComponent(data.token);
+            }, 800);
+        } else {
+            msgEl.innerHTML = '<div class="cw-error">❌ ကုဒ်မမှန်ကန်ပါ။ ထပ်စမ်းကြည့်ပါ။</div>';
+            input.classList.add('cw-shake');
+            setTimeout(() => input.classList.remove('cw-shake'), 500);
+            input.value = '';
+            input.focus();
+        }
+    } catch (e) {
+        msgEl.innerHTML = '<div class="cw-error">❌ ဆက်သွယ်မှု အမှားရှိနေသည်။</div>';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'ကုဒ်စစ်ဆေးပါ';
+    }
+}
+
+function setStoredCode(code, type, expiresAt) {
+    localStorage.setItem('cw_code', JSON.stringify({ code, type, expiresAt }));
+}
+
+// Handle Enter key
+document.getElementById('cw-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitCode();
+});
+
+// === Match Click ===
+function showMatch(id) {
+    // Check if user already has valid code
+    const stored = getStoredCode();
+    if (stored) {
+        // Already validated — redirect to player immediately
+        // Get token from stored code (re-validate silently)
+        fetch(CODE_API + '?action=validate&code=' + encodeURIComponent(stored.code))
+            .then(r => r.json())
+            .then(data => {
+                if (data.valid) {
+                    window.location.href = '/player?id=' + encodeURIComponent(id) + '&token=' + encodeURIComponent(data.token);
+                } else {
+                    // Stored code expired, show code wall
+                    localStorage.removeItem('cw_code');
+                    preloadAndShowWall(id);
                 }
-            }
-        });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
-        video.addEventListener('loadedmetadata', () => {
-            document.getElementById('loading').classList.remove('active');
-            video.play().catch(() => {});
-        }, {once: true});
+            })
+            .catch(() => {
+                // Network error, try anyway with stored code
+                window.location.href = '/player?id=' + encodeURIComponent(id);
+            });
+        return;
     }
+
+    // No valid code stored — show code wall
+    preloadAndShowWall(id);
 }
 
-function setQuality(q) {
-    currentQuality = q;
-    document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
-    if (currentStreams && currentStreams[q] && currentStreams[q].length) {
-        playStream(currentStreams[q][0]);
-    }
-}
-
-// === Block popups from iframes ===
-const realWindowOpen = window.open;
-window.open = function() { return null; }; // Block all popup windows
-
-// === M3U8 Interceptor via Performance API ===
-function startM3u8Interceptor(timeout = 15000) {
-    return new Promise((resolve) => {
-        foundM3u8 = null;
-        interceptorActive = true;
-
-        // Clear old resource entries
-        performance.clearResourceTimings();
-
-        const observer = new PerformanceObserver((list) => {
-            for (const entry of list.getEntries()) {
-                if (entry.name.includes('.m3u8') && !foundM3u8) {
-                    foundM3u8 = entry.name;
-                    observer.disconnect();
-                    interceptorActive = false;
-                    resolve(foundM3u8);
-                }
-            }
-        });
-        observer.observe({ entryTypes: ['resource'] });
-
-        // Timeout fallback
-        setTimeout(() => {
-            if (!foundM3u8) {
-                const resources = performance.getEntriesByType('resource');
-                for (const r of resources) {
-                    if (r.name.includes('.m3u8')) {
-                        foundM3u8 = r.name;
-                        break;
-                    }
-                }
-            }
-            observer.disconnect();
-            interceptorActive = false;
-            resolve(foundM3u8);
-        }, timeout);
-    });
-}
-
-function killIframe() {
-    iframeTrap.innerHTML = '';
-    // Also clear any leftover iframes in placeholder
-    const ph = document.getElementById('placeholder');
-    if (ph) {
-        const iframes = ph.querySelectorAll('iframe');
-        iframes.forEach(f => f.remove());
-    }
-}
-
-// === Stream Loading ===
-async function loadStreamAdFree(embedUrl) {
-    showStatus('🔍 m3u8 ရှာဖွေနေသည်... (10s)', 'warn');
-    
-    // Start interceptor with shorter timeout
-    const m3u8Promise = startM3u8Interceptor(10000);
-
-    // Load iframe into hidden trap
-    iframeTrap.innerHTML = `<iframe src="${embedUrl}" width="1" height="1" frameborder="0" allow="encrypted-media" allowfullscreen></iframe>`;
-
-    // Wait for m3u8
-    const m3u8 = await m3u8Promise;
-
-    // Kill iframe immediately
-    killIframe();
-
-    if (m3u8) {
-        const sdM3u8 = m3u8.replace('_lhd', '_lsd');
-        currentStreams = { hd: [m3u8], sd: [sdM3u8 !== m3u8 ? sdM3u8 : ''] };
-        document.getElementById('quality-btns').style.display = 'flex';
-        currentQuality = 'hd';
-        
-        const ph = document.getElementById('placeholder');
-        ph.innerHTML = '';
-        ph.style.display = 'none';
-        
-        playStream(m3u8);
-        showStatus('✅ Ad-Free Stream', 'ok');
-        updateBadge(true);
-        return true;
-    } else {
-        killIframe();
-        return false;
-    }
-}
-
-function showStatus(text, type) {
-    const el = document.getElementById('stream-status');
-    el.textContent = text;
-    el.style.display = 'block';
-    el.className = 'stream-status ' + (type || '');
-    setTimeout(() => { el.style.display = 'none'; }, 8000);
-}
-
-function updateBadge(adFree) {
-    const badge = document.getElementById('ads-badge');
-    if (adFree) {
-        badge.textContent = '🛡️ ကြော်ငြာမရှိ';
-        badge.style.background = '#28a745';
-    } else {
-        badge.textContent = '⚠️ ကြော်ငြာပါ';
-        badge.style.background = '#dc3545';
+async function preloadAndShowWall(id) {
+    // Fetch match info to show preview in code wall
+    try {
+        const detail = await api({type: 'detail', id});
+        if (detail.success && detail.data && detail.data.match_info) {
+            showCodeWall(id, detail.data.match_info);
+        } else {
+            showCodeWall(id, null);
+        }
+    } catch(e) {
+        showCodeWall(id, null);
     }
 }
 
@@ -421,26 +332,19 @@ async function loadMatches() {
             return;
         }
 
-        // Merge all leagues (deduplicate by name+country)
         allLeagues = [];
         const seen = new Set();
         for (const lg of raw) {
             const key = lg.league.name + '|' + lg.league.country;
             if (seen.has(key)) {
-                // Merge matches into existing league
                 const existing = allLeagues.find(l => l.key === key);
                 if (existing) existing.matches.push(...lg.matches);
             } else {
                 seen.add(key);
-                allLeagues.push({
-                    key,
-                    league: lg.league,
-                    matches: [...lg.matches]
-                });
+                allLeagues.push({ key, league: lg.league, matches: [...lg.matches] });
             }
         }
 
-        // Sort leagues: live matches first, then by name
         allLeagues.sort((a, b) => {
             const aLive = a.matches.some(m => m.status === 'inprogress') ? 0 : 1;
             const bLive = b.matches.some(m => m.status === 'inprogress') ? 0 : 1;
@@ -450,30 +354,18 @@ async function loadMatches() {
 
         renderLeagueTabs();
         renderMatchList();
-
-        // Auto-load first live match
-        if (!activeMatchId) {
-            for (const lg of allLeagues) {
-                const live = lg.matches.find(m => m.status === 'inprogress');
-                if (live) { showMatch(live.id); break; }
-            }
-        }
     } catch(e) {
-        el.innerHTML = `<div class="loading">❌ ${e.message}</div>`;
+        el.innerHTML = '<div class="loading">❌ ' + e.message + '</div>';
     }
 }
 
 function renderLeagueTabs() {
     const tabs = document.getElementById('league-tabs');
-    let html = `<div class="league-tab ${activeLeague === 'all' ? 'active' : ''}" onclick="filterLeague('all')">⚽ အားလုံး <span class="count">${allLeagues.reduce((s,l) => s + l.matches.length, 0)}</span></div>`;
+    let html = '<div class="league-tab ' + (activeLeague === 'all' ? 'active' : '') + '" onclick="filterLeague(\'all\')">⚽ အားလုံး <span class="count">' + allLeagues.reduce((s,l) => s + l.matches.length, 0) + '</span></div>';
     for (const lg of allLeagues) {
         const liveCount = lg.matches.filter(m => m.status === 'inprogress').length;
         const badge = liveCount > 0 ? '🔴' : '';
-        html += `<div class="league-tab ${activeLeague === lg.key ? 'active' : ''}" onclick="filterLeague('${lg.key.replace(/'/g, "\\'")}')">
-            <img src="${lg.league.flag || lg.league.logo}">
-            ${badge} ${lg.league.name}
-            <span class="count">${lg.matches.length}</span>
-        </div>`;
+        html += '<div class="league-tab ' + (activeLeague === lg.key ? 'active' : '') + '" onclick="filterLeague(\'' + lg.key.replace(/'/g, "\\'") + '\')"><img src="' + (lg.league.flag || lg.league.logo) + '">' + badge + ' ' + lg.league.name + ' <span class="count">' + lg.matches.length + '</span></div>';
     }
     tabs.innerHTML = html;
 }
@@ -493,36 +385,16 @@ function renderMatchList() {
         const hasLive = lg.matches.some(m => m.status === 'inprogress');
         const leagueId = lg.key.replace(/[^a-zA-Z0-9]/g, '_');
 
-        // League group header (only show when "all" is selected)
         if (activeLeague === 'all') {
-            html += `<div class="league-group">
-                <div class="league-group-header" onclick="toggleLeague('${leagueId}')">
-                    <img src="${lg.league.flag || lg.league.logo}">
-                    <span class="lg-name">${lg.league.name}</span>
-                    <span class="lg-country">${lg.league.country}</span>
-                    ${hasLive ? '<span class="lg-count">● LIVE</span>' : ''}
-                    <span class="lg-count">${lg.matches.length} ပွဲ</span>
-                    <span class="lg-toggle" id="toggle-${leagueId}">▼</span>
-                </div>
-                <div class="league-group-body" id="body-${leagueId}">`;
+            html += '<div class="league-group"><div class="league-group-header" onclick="toggleLeague(\'' + leagueId + '\')"><img src="' + (lg.league.flag || lg.league.logo) + '"><span class="lg-name">' + lg.league.name + '</span><span class="lg-country">' + lg.league.country + '</span>' + (hasLive ? '<span class="lg-count">● LIVE</span>' : '') + '<span class="lg-count">' + lg.matches.length + ' ပွဲ</span><span class="lg-toggle" id="toggle-' + leagueId + '">▼</span></div><div class="league-group-body" id="body-' + leagueId + '">';
         } else {
-            html += `<div class="league-group"><div class="league-group-body">`;
+            html += '<div class="league-group"><div class="league-group-body">';
         }
 
         for (const m of lg.matches) {
             const sc = m.status === 'inprogress' ? 'st-live' : m.status === 'finished' ? 'st-ft' : 'st-up';
             const st = getStatus(m.status, m.status_detail);
-            html += `<div class="match-card${m.id === activeMatchId ? ' active' : ''}" onclick="showMatch('${m.id}')">
-                <div class="card-teams">
-                    <div class="card-team"><img src="${m.teams.home.badge}"><span>${m.teams.home.name}</span></div>
-                    <div class="card-score">${m.score.display||'VS'}</div>
-                    <div class="card-team" style="flex-direction:row-reverse"><img src="${m.teams.away.badge}"><span>${m.teams.away.name}</span></div>
-                </div>
-                <div class="card-meta">
-                    <span>${lg.league.name} • ${lg.league.country}</span>
-                    <span class="status ${sc}" style="font-size:9px">${st}</span>
-                </div>
-            </div>`;
+            html += '<div class="match-card" onclick="showMatch(\'' + m.id + '\')"><div class="card-teams"><div class="card-team"><img src="' + m.teams.home.badge + '"><span>' + m.teams.home.name + '</span></div><div class="card-score">' + (m.score.display || 'VS') + '</div><div class="card-team" style="flex-direction:row-reverse"><img src="' + m.teams.away.badge + '"><span>' + m.teams.away.name + '</span></div></div><div class="card-meta"><span>' + lg.league.name + ' • ' + lg.league.country + '</span><span class="status ' + sc + '" style="font-size:9px">' + st + '</span></div></div>';
         }
 
         html += '</div></div>';
@@ -537,230 +409,6 @@ function toggleLeague(id) {
     if (body && toggle) {
         body.classList.toggle('hidden');
         toggle.classList.toggle('collapsed');
-    }
-}
-
-function stopCurrentStream() {
-    // Destroy HLS player immediately
-    if (hls) { hls.destroy(); hls = null; }
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
-    video.style.display = '';  // Show video element again
-
-    // Kill any hidden iframe trap
-    killIframe();
-
-    // Clear placeholder and show loading state
-    const ph = document.getElementById('placeholder');
-    ph.innerHTML = '<div style="text-align:center"><div style="font-size:40px;margin-bottom:10px">⚽</div><p style="font-size:13px;color:#555">ခဏစောင့်ပါ...</p></div>';
-    ph.style.display = 'flex';
-
-    // Show loading spinner
-    document.getElementById('loading').classList.add('active');
-
-    // Reset quality & streams
-    currentStreams = null;
-    currentQuality = 'hd';
-    document.getElementById('quality-btns').style.display = 'none';
-    document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.q-btn')?.classList.add('active');
-}
-
-// === Code Wall ===
-const CODE_API = '/api/code';
-let pendingMatchId = null;
-let pendingMatchData = null;
-
-function getStoredCode() {
-    try {
-        const data = localStorage.getItem('cw_code');
-        if (!data) return null;
-        const parsed = JSON.parse(data);
-        // Check if expired
-        if (parsed.expiresAt && Date.now() < new Date(parsed.expiresAt).getTime()) {
-            return parsed;
-        }
-        // Expired, remove
-        localStorage.removeItem('cw_code');
-        return null;
-    } catch { return null; }
-}
-
-function setStoredCode(code, type, expiresAt) {
-    localStorage.setItem('cw_code', JSON.stringify({ code, type, expiresAt }));
-}
-
-function showCodeWall(matchId) {
-    pendingMatchId = matchId;
-    document.getElementById('code-wall').classList.add('active');
-    document.getElementById('player-lock').style.display = 'block';
-    document.getElementById('cw-message').innerHTML = '';
-    document.getElementById('cw-input').value = '';
-    document.getElementById('cw-input').focus();
-}
-
-function hideCodeWall() {
-    document.getElementById('code-wall').classList.remove('active');
-    document.getElementById('player-lock').style.display = 'none';
-    document.getElementById('cw-message').innerHTML = '';
-}
-
-async function submitCode() {
-    const input = document.getElementById('cw-input');
-    const code = input.value.trim();
-    const msgEl = document.getElementById('cw-message');
-    const btn = document.getElementById('cw-submit');
-
-    if (!code) {
-        msgEl.innerHTML = '<div class="cw-error">⚠️ ကုဒ်နံပါတ် ထည့်ပါ</div>';
-        input.classList.add('cw-shake');
-        setTimeout(() => input.classList.remove('cw-shake'), 500);
-        return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'စစ်ဆေးနေသည်...';
-    msgEl.innerHTML = '';
-
-    try {
-        const resp = await fetch(CODE_API + '?action=validate&code=' + encodeURIComponent(code));
-        const data = await resp.json();
-
-        if (data.valid) {
-            // Success!
-            setStoredCode(code, data.type, data.expiresAt);
-            msgEl.innerHTML = '<div class="cw-success">✅ ကုဒ်မှန်ကန်ပါတယ်</div>';
-
-            setTimeout(() => {
-                hideCodeWall();
-                // Continue loading the match that was pending
-                if (pendingMatchId && pendingMatchData) {
-                    continueShowMatch(pendingMatchId, pendingMatchData);
-                } else if (pendingMatchId) {
-                    showMatch(pendingMatchId);
-                }
-            }, 1000);
-        } else {
-            // Invalid code
-            msgEl.innerHTML = '<div class="cw-error">❌ ကုဒ်မမှန်ကန်ပါ။ ထပ်စမ်းကြည့်ပါ။</div>';
-            input.classList.add('cw-shake');
-            setTimeout(() => input.classList.remove('cw-shake'), 500);
-            input.value = '';
-            input.focus();
-        }
-    } catch (e) {
-        msgEl.innerHTML = '<div class="cw-error">❌ ဆက်သွယ်မှု အမှားရှိနေသည်။</div>';
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'ကုဒ်စစ်ဆေးပါ';
-    }
-}
-
-function watchAd() {
-    // After user clicks watch ad, the placeholder URL opens in new tab.
-    // The ad/locker page should eventually reveal the current free code.
-    // User will come back and enter it manually.
-}
-
-// Handle Enter key on input
-document.addEventListener('DOMContentLoaded', () => {
-    const cwInput = document.getElementById('cw-input');
-    if (cwInput) {
-        cwInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') submitCode();
-        });
-    }
-});
-
-async function showMatch(id) {
-    // Check code wall first
-    const stored = getStoredCode();
-    if (!stored) {
-        // Need to show code wall, but first fetch match data so we can play after
-        stopCurrentStream();
-        activeMatchId = id;
-        document.querySelectorAll('.match-card').forEach(c => c.classList.remove('active'));
-
-        try {
-            const detail = await api({type:'detail', id});
-            if (!detail.success) return;
-            pendingMatchData = detail;
-            showCodeWall(id);
-        } catch(e) {
-            console.error('showMatch preload error:', e);
-            showCodeWall(id);
-        }
-        return;
-    }
-
-    // Code is valid, proceed normally
-    stopCurrentStream();
-
-    activeMatchId = id;
-    document.querySelectorAll('.match-card').forEach(c => c.classList.remove('active'));
-
-    try {
-        const detail = await api({type:'detail', id});
-        if (!detail.success) return;
-        continueShowMatch(id, detail);
-    } catch(e) {
-        console.error('showMatch error:', e);
-    }
-}
-
-// The actual match loading logic (called after code validation)
-async function continueShowMatch(id, detail) {
-    const m = detail.data.match_info;
-    const info = document.getElementById('info');
-
-    document.getElementById('i-league').innerHTML = `<img src="${m.league.flag}"><span>${m.league.name} • ${m.league.country}</span>`;
-    document.getElementById('i-status').textContent = getStatus(m.status, m.status_detail);
-    document.getElementById('i-h-badge').src = m.teams.home.badge;
-    document.getElementById('i-h-name').textContent = m.teams.home.name;
-    document.getElementById('i-a-badge').src = m.teams.away.badge;
-    document.getElementById('i-a-name').textContent = m.teams.away.name;
-    document.getElementById('i-score').textContent = m.score.display;
-
-    const v = detail.data.info?.venue;
-    document.getElementById('i-venue').textContent = v ? `${v.stadium} • ${v.city}` : '';
-    info.style.display = 'block';
-
-    // Get embed URL from API sources
-    const sources = detail.data.sources || [];
-    
-    // Try ad-free: streamapi.cc first, then sport99.live
-    const streamapiSource = sources.find(s => s.embedUrl && s.embedUrl.includes('streamapi.cc'));
-    const sport99Source = sources.find(s => s.embedUrl && s.embedUrl.includes('sport99.live'));
-
-    if (streamapiSource) {
-        showStatus('🔍 Ad-Free stream ရှာနေသည်...', 'warn');
-        const success = await loadStreamAdFree(streamapiSource.embedUrl);
-        if (success) return;
-    }
-
-    if (sport99Source) {
-        showStatus('🔍 ဒုတိယနည်းလမ်း စမ်းသပ်နေ...', 'warn');
-        const success = await loadStreamAdFree(sport99Source.embedUrl);
-        if (success) return;
-    }
-
-    // Fallback: show iframe embed (works but has ads)
-    if (sources.length) {
-        currentStreams = null;
-        document.getElementById('quality-btns').style.display = 'none';
-        document.getElementById('loading').classList.remove('active');
-        const ph = document.getElementById('placeholder');
-        ph.innerHTML = '';
-        ph.innerHTML = `<iframe src="${sources[0].embedUrl}" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>`;
-        ph.style.display = 'block';
-        // Hide video player since we're using iframe
-        video.style.display = 'none';
-        showStatus('📺 Stream ဖွင့်နေသည်...', 'warn');
-        updateBadge(false);
-    } else {
-        document.getElementById('loading').classList.remove('active');
-        showStatus('❌ Stream မရှိပါ', 'err');
     }
 }
 

@@ -3,21 +3,22 @@ import crypto from 'crypto';
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'kazuma2026';
 const CODE_SECRET = process.env.CODE_SECRET || 'football2026secret';
+const TOKEN_SECRET = process.env.TOKEN_SECRET || 'token_secret_2026_football';
+const TOKEN_EXPIRY_MS = 4 * 60 * 60 * 1000; // 4 hours per token
 
-// Premium codes: { code, expiresAt } - expiresAt is ISO string
-// These persist across redeployments (hard-coded). Admin can add more via POST.
+// Premium codes: { code, expiresAt }
 const premiumCodes = [
     { code: 'PREMIUM1', createdAt: '2026-01-01T00:00:00Z' },
     { code: 'PREMIUM2', createdAt: '2026-01-01T00:00:00Z' },
     { code: 'VIP2026', createdAt: '2026-01-01T00:00:00Z' },
 ];
 
-// In-memory store for dynamically generated premium codes (lost on cold start, that's OK)
 let dynamicPremiumCodes = [];
 
-const FREE_WINDOW_MS = 4 * 60 * 60 * 1000; // 4 hours
-const PREMIUM_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const FREE_WINDOW_MS = 4 * 60 * 60 * 1000;
+const PREMIUM_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
+// === Free Code Generation ===
 function generateFreeCode() {
     const window = Math.floor(Date.now() / FREE_WINDOW_MS);
     return crypto.createHash('sha256')
@@ -32,8 +33,44 @@ function getFreeCodeExpiry() {
     return new Date((window + 1) * FREE_WINDOW_MS).toISOString();
 }
 
+// === Signed Token ===
+function generateToken(code, type, expiresAt) {
+    const payload = JSON.stringify({ code, type, expiresAt, ts: Date.now() });
+    const iv = crypto.randomBytes(12);
+    const key = crypto.createHash('sha256').update(TOKEN_SECRET).digest();
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    let encrypted = cipher.update(payload, 'utf8', 'base64');
+    encrypted += cipher.final('base64');
+    const tag = cipher.getAuthTag();
+    // token = iv.tag.encrypted (all base64)
+    return Buffer.concat([iv, tag, Buffer.from(encrypted, 'base64')]).toString('base64url');
+}
+
+function verifyToken(tokenStr) {
+    try {
+        const raw = Buffer.from(tokenStr, 'base64url');
+        if (raw.length < 13) return null; // 12 iv + at least 1 byte
+        const iv = raw.subarray(0, 12);
+        const tag = raw.subarray(12, 28);
+        const encrypted = raw.subarray(28);
+        const key = crypto.createHash('sha256').update(TOKEN_SECRET).digest();
+        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+        decipher.setAuthTag(tag);
+        let decrypted = decipher.update(encrypted, undefined, 'utf8');
+        decrypted += decipher.final('utf8');
+        const payload = JSON.parse(decrypted);
+        // Check token expiry (not code expiry)
+        if (Date.now() - payload.ts > TOKEN_EXPIRY_MS) return null;
+        // Check code still valid
+        if (payload.expiresAt && Date.now() > new Date(payload.expiresAt).getTime()) return null;
+        return payload;
+    } catch {
+        return null;
+    }
+}
+
+// === Code Validation ===
 function isPremiumCodeValid(code) {
-    // Check static premium codes
     const now = Date.now();
     for (const pc of premiumCodes) {
         if (pc.code === code) {
@@ -43,7 +80,6 @@ function isPremiumCodeValid(code) {
             }
         }
     }
-    // Check dynamic premium codes
     for (const pc of dynamicPremiumCodes) {
         if (pc.code === code) {
             const expiresAt = new Date(pc.createdAt).getTime() + PREMIUM_DURATION_MS;
@@ -57,49 +93,29 @@ function isPremiumCodeValid(code) {
 
 function validateCode(code) {
     if (!code) return { valid: false };
-
     const upper = code.toUpperCase().trim();
-
-    // Check free code
     const currentFree = generateFreeCode();
     if (upper === currentFree) {
-        return { valid: true, type: 'free', expiresAt: getFreeCodeExpiry() };
+        const expiresAt = getFreeCodeExpiry();
+        return { valid: true, type: 'free', expiresAt };
     }
-
-    // Check premium codes
     const premiumResult = isPremiumCodeValid(upper);
     if (premiumResult.valid) return premiumResult;
-
     return { valid: false };
 }
 
+// === Admin Helpers ===
 function getAllActiveCodes() {
     const now = Date.now();
-    const codes = [];
-
-    // Current free code
-    codes.push({
-        code: generateFreeCode(),
-        type: 'free',
-        expiresAt: getFreeCodeExpiry()
-    });
-
-    // Active static premium codes
+    const codes = [{ code: generateFreeCode(), type: 'free', expiresAt: getFreeCodeExpiry() }];
     for (const pc of premiumCodes) {
         const expiresAt = new Date(pc.createdAt).getTime() + PREMIUM_DURATION_MS;
-        if (now < expiresAt) {
-            codes.push({ code: pc.code, type: 'premium', expiresAt: new Date(expiresAt).toISOString() });
-        }
+        if (now < expiresAt) codes.push({ code: pc.code, type: 'premium', expiresAt: new Date(expiresAt).toISOString() });
     }
-
-    // Active dynamic premium codes
     for (const pc of dynamicPremiumCodes) {
         const expiresAt = new Date(pc.createdAt).getTime() + PREMIUM_DURATION_MS;
-        if (now < expiresAt) {
-            codes.push({ code: pc.code, type: 'premium', expiresAt: new Date(expiresAt).toISOString() });
-        }
+        if (now < expiresAt) codes.push({ code: pc.code, type: 'premium', expiresAt: new Date(expiresAt).toISOString() });
     }
-
     return codes;
 }
 
@@ -114,39 +130,46 @@ function generatePremiumCode() {
 function deleteCode(code) {
     const upper = code.toUpperCase().trim();
     const idx = dynamicPremiumCodes.findIndex(c => c.code === upper);
-    if (idx !== -1) {
-        dynamicPremiumCodes.splice(idx, 1);
-        return true;
-    }
+    if (idx !== -1) { dynamicPremiumCodes.splice(idx, 1); return true; }
     return false;
 }
 
+// === Handler ===
 export default async function handler(req, res) {
-    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Secret');
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
+    if (req.method === 'OPTIONS') return res.status(200).end();
 
     try {
         if (req.method === 'GET') {
-            const { action, code } = req.query;
+            const { action, code, token } = req.query;
 
+            // Validate code → returns signed token
             if (action === 'validate') {
-                if (!code) {
-                    return res.status(400).json({ error: 'Missing code parameter' });
+                if (!code) return res.status(400).json({ error: 'Missing code parameter' });
+                const result = validateCode(code);
+                if (result.valid) {
+                    result.token = generateToken(code, result.type, result.expiresAt);
                 }
-                return res.status(200).json(validateCode(code));
+                return res.status(200).json(result);
             }
 
+            // Check if token is valid (used by player page)
+            if (action === 'check') {
+                if (!token) return res.status(200).json({ valid: false });
+                const payload = verifyToken(token);
+                if (payload) {
+                    return res.status(200).json({ valid: true, type: payload.type });
+                }
+                return res.status(200).json({ valid: false });
+            }
+
+            // Admin: list all codes
             if (action === 'codes') {
                 const secret = req.headers['x-admin-secret'];
-                if (secret !== ADMIN_SECRET) {
-                    return res.status(403).json({ error: 'Unauthorized' });
-                }
+                if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Unauthorized' });
                 return res.status(200).json({ codes: getAllActiveCodes() });
             }
 
@@ -157,32 +180,20 @@ export default async function handler(req, res) {
             const body = req.body || {};
             const { action, code, type, secret } = body;
 
-            if (secret !== ADMIN_SECRET) {
-                return res.status(403).json({ error: 'Unauthorized - invalid secret' });
-            }
+            if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Unauthorized' });
 
             if (action === 'generate') {
                 if (type === 'premium') {
-                    const result = generatePremiumCode();
-                    return res.status(200).json({ success: true, ...result });
+                    return res.status(200).json({ success: true, ...generatePremiumCode() });
                 } else if (type === 'free') {
-                    // Return current free code info
-                    return res.status(200).json({
-                        success: true,
-                        code: generateFreeCode(),
-                        type: 'free',
-                        expiresAt: getFreeCodeExpiry()
-                    });
+                    return res.status(200).json({ success: true, code: generateFreeCode(), type: 'free', expiresAt: getFreeCodeExpiry() });
                 }
-                return res.status(400).json({ error: 'Invalid type. Use "free" or "premium"' });
+                return res.status(400).json({ error: 'Invalid type' });
             }
 
             if (action === 'delete') {
-                if (!code) {
-                    return res.status(400).json({ error: 'Missing code parameter' });
-                }
-                const deleted = deleteCode(code);
-                return res.status(200).json({ success: deleted, message: deleted ? 'Code deleted' : 'Code not found in dynamic store' });
+                if (!code) return res.status(400).json({ error: 'Missing code' });
+                return res.status(200).json({ success: deleteCode(code) });
             }
 
             return res.status(400).json({ error: 'Invalid action' });

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ ဘစ်ကြီး - Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a0f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+
+        .header{background:linear-gradient(135deg,#0f0f1a,#1a1a2e);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e94560;position:sticky;top:0;z-index:100}
+        .header-left{display:flex;align-items:center;gap:10px}
+        .brand{font-size:20px;font-weight:900;background:linear-gradient(90deg,#e94560,#ff6b6b,#ffa500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1px;cursor:pointer;text-decoration:none}
+        .brand-icon{font-size:22px;cursor:pointer}
+        .back-btn{background:rgba(255,255,255,.08);color:#ccc;border:1px solid rgba(255,255,255,.15);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:11px;transition:.2s;display:flex;align-items:center;gap:5px;text-decoration:none}
+        .back-btn:hover{background:rgba(255,255,255,.15);color:#fff}
+        .no-ads{background:#28a745;color:#fff;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:bold;display:flex;align-items:center;gap:4px}
+        .header-btns{display:flex;gap:8px;align-items:center}
+
+        .container{max-width:1100px;margin:0 auto;padding:14px}
+
+        /* Player */
+        .player-box{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden;box-shadow:0 6px 24px rgba(233,69,96,.1);margin-bottom:14px}
+        .player-box video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000}
+        .player-placeholder{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#111;color:#444;z-index:5}
+        .player-loading{position:absolute;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:10}
+        .player-loading.active{display:flex}
+        .spinner{width:40px;height:40px;border:3px solid #222;border-top-color:#e94560;border-radius:50%;animation:spin .8s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .quality-btns{position:absolute;top:10px;right:10px;z-index:20;display:flex;gap:6px}
+        .q-btn{background:rgba(0,0,0,.7);color:#ccc;border:1px solid rgba(255,255,255,.2);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;transition:.2s}
+        .q-btn:hover,.q-btn.active{background:#e94560;color:#fff;border-color:#e94560}
+
+        /* Hidden iframe trap */
+        .iframe-trap{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}
+
+        /* Match Info */
+        .match-info{background:linear-gradient(135deg,#0f0f1a,#1a1a2e);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid rgba(233,69,96,.15);display:none}
+        .match-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+        .league-info{display:flex;align-items:center;gap:8px;font-size:11px;color:#666}
+        .league-info img{width:20px;height:20px;border-radius:3px}
+        .status{font-size:10px;padding:3px 8px;border-radius:16px;font-weight:600}
+        .st-live{background:rgba(233,69,96,.2);color:#e94560}
+        .st-up{background:rgba(52,152,219,.2);color:#3498db}
+        .st-ft{background:rgba(149,165,166,.2);color:#95a5a6}
+        .teams-row{display:flex;align-items:center;justify-content:center;gap:20px;padding:10px 0}
+        .team{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:90px}
+        .team img{width:40px;height:40px}
+        .team-name{font-size:12px;font-weight:600;text-align:center}
+        .score{font-size:24px;font-weight:900;color:#e94560;min-width:60px;text-align:center}
+        .venue{font-size:10px;color:#555;text-align:center}
+
+        /* Stream status */
+        .stream-status{position:absolute;bottom:10px;left:10px;z-index:20;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:4px;font-size:9px;display:none}
+        .stream-status.ok{color:#28a745}
+        .stream-status.warn{color:#ffc107}
+        .stream-status.err{color:#dc3545}
+
+        /* Error state */
+        .error-page{display:flex;align-items:center;justify-content:center;min-height:60vh;text-align:center}
+        .error-content{max-width:400px}
+        .error-icon{font-size:60px;margin-bottom:16px}
+        .error-title{font-size:20px;font-weight:800;color:#e94560;margin-bottom:8px}
+        .error-msg{font-size:13px;color:#888;margin-bottom:20px}
+        .error-btn{display:inline-block;padding:10px 24px;background:linear-gradient(135deg,#e94560,#c0392b);color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;transition:.2s}
+        .error-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(233,69,96,.4)}
+
+        /* Match navigation */
+        .nav-bar{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding:4px 0}
+        .nav-btn{flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#aaa;padding:6px 14px;border-radius:8px;font-size:11px;cursor:pointer;transition:.2s;white-space:nowrap}
+        .nav-btn:hover{background:rgba(233,69,96,.15);color:#e94560;border-color:rgba(233,69,96,.3)}
+        .nav-btn.active{background:rgba(233,69,96,.2);color:#e94560;border-color:#e94560}
+
+        @media(max-width:600px){
+            .header{padding:10px 14px}
+            .brand{font-size:16px}
+            .container{padding:10px}
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="header-left">
+        <span class="brand-icon" onclick="goHome()">⚽</span>
+        <span class="brand" onclick="goHome()">ဘစ်ကြီး</span>
+        <span class="no-ads" id="ads-badge">🛡️ ကြော်ငြာမရှိ</span>
+    </div>
+    <div class="header-btns">
+        <a href="/" class="back-btn">← ပွဲစဉ်စာမျက်နှာ</a>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Error state (hidden by default) -->
+    <div class="error-page" id="error-page" style="display:none">
+        <div class="error-content">
+            <div class="error-icon">🔒</div>
+            <div class="error-title">ရယူခွင့် မရှိပါ</div>
+            <div class="error-msg" id="error-msg">ကုဒ်နံပါတ် မှန်ကန်မှ ပွဲစဉ်ကြည့်နိုင်ပါတယ်။</div>
+            <a href="/" class="error-btn">← ပြနးသွားပါ</a>
+        </div>
+    </div>
+
+    <!-- Player (hidden until validated) -->
+    <div id="player-section" style="display:none">
+        <div class="player-box">
+            <video id="video" controls playsinline></video>
+            <div class="player-placeholder" id="placeholder">
+                <div style="text-align:center">
+                    <div style="font-size:40px;margin-bottom:10px">⚽</div>
+                    <p style="font-size:13px">ခဏစောင့်ပါ...</p>
+                </div>
+            </div>
+            <div class="player-loading" id="loading"><div class="spinner"></div></div>
+            <div class="quality-btns" id="quality-btns" style="display:none">
+                <button class="q-btn active" onclick="setQuality(&#39;hd&#39;)">HD</button>
+                <button class="q-btn" onclick="setQuality(&#39;sd&#39;)">SD</button>
+            </div>
+            <div class="stream-status" id="stream-status"></div>
+        </div>
+
+        <div class="iframe-trap" id="iframe-trap"></div>
+
+        <div class="match-info" id="info">
+            <div class="match-header">
+                <div class="league-info" id="i-league"></div>
+                <span class="status st-live" id="i-status"></span>
+            </div>
+            <div class="teams-row">
+                <div class="team"><img id="i-h-badge"><span class="team-name" id="i-h-name"></span></div>
+                <div class="score" id="i-score"></div>
+                <div class="team"><img id="i-a-badge"><span class="team-name" id="i-a-name"></span></div>
+            </div>
+            <div class="venue" id="i-venue"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_PROXY = '/api/matches';
+const CODE_API = '/api/code';
+const video = document.getElementById('video');
+const iframeTrap = document.getElementById('iframe-trap');
+let hls = null;
+let currentStreams = null;
+let currentQuality = 'hd';
+let validated = false;
+
+const statusMap = {
+    'inprogress': 'ကစားနေသည်',
+    'finished': 'ပြီးဆုံး',
+    'upcoming': 'မကစားရသေး',
+    '1st half': 'ပထမပိုင်း',
+    '2nd half': 'ဒုတိယပိုင်း',
+    'halftime': 'အနားယူနေသည်',
+    'LIVE': 'တိုက်ရိုက်',
+    'FT': 'ပြီးဆုံး',
+};
+
+function getStatus(status, detail) {
+    if (detail && statusMap[detail]) return statusMap[detail];
+    if (statusMap[status]) return statusMap[status];
+    return detail || status;
+}
+
+function goHome() { window.location.href = '/'; }
+
+// === API with token ===
+async function api(params) {
+    const token = new URLSearchParams(window.location.search).get('token') || '';
+    if (token) params.token = token;
+    const r = await fetch(API_PROXY + '?' + new URLSearchParams(params));
+    return r.json();
+}
+
+// === Block popups ===
+window.open = function() { return null; };
+
+// === Player ===
+function playStream(url) {
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('loading').classList.add('active');
+
+    if (hls) { hls.destroy(); hls = null; }
+
+    if (Hls.isSupported()) {
+        hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, startLevel: -1 });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            document.getElementById('loading').classList.remove('active');
+            video.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (e, data) => {
+            if (data.fatal) {
+                if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                    if (currentQuality === 'hd' && currentStreams && currentStreams.sd && currentStreams.sd.length) {
+                        setQuality('sd');
+                    } else {
+                        hls.startLoad();
+                    }
+                }
+            }
+        });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => {
+            document.getElementById('loading').classList.remove('active');
+            video.play().catch(() => {});
+        }, {once: true});
+    }
+}
+
+function setQuality(q) {
+    currentQuality = q;
+    document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    if (currentStreams && currentStreams[q] && currentStreams[q].length) {
+        playStream(currentStreams[q][0]);
+    }
+}
+
+// === M3U8 Interceptor ===
+function startM3u8Interceptor(timeout = 15000) {
+    return new Promise((resolve) => {
+        let foundM3u8 = null;
+        performance.clearResourceTimings();
+
+        const observer = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+                if (entry.name.includes('.m3u8') && !foundM3u8) {
+                    foundM3u8 = entry.name;
+                    observer.disconnect();
+                    resolve(foundM3u8);
+                }
+            }
+        });
+        observer.observe({ entryTypes: ['resource'] });
+
+        setTimeout(() => {
+            if (!foundM3u8) {
+                const resources = performance.getEntriesByType('resource');
+                for (const r of resources) {
+                    if (r.name.includes('.m3u8')) { foundM3u8 = r.name; break; }
+                }
+            }
+            observer.disconnect();
+            resolve(foundM3u8);
+        }, timeout);
+    });
+}
+
+function killIframe() { iframeTrap.innerHTML = ''; }
+
+async function loadStreamAdFree(embedUrl) {
+    showStatus('🔍 m3u8 ရှာဖွေနေသည်... (10s)', 'warn');
+    const m3u8Promise = startM3u8Interceptor(10000);
+    iframeTrap.innerHTML = '<iframe src="' + embedUrl + '" width="1" height="1" frameborder="0" allow="encrypted-media" allowfullscreen></iframe>';
+    const m3u8 = await m3u8Promise;
+    killIframe();
+
+    if (m3u8) {
+        const sdM3u8 = m3u8.replace('_lhd', '_lsd');
+        currentStreams = { hd: [m3u8], sd: [sdM3u8 !== m3u8 ? sdM3u8 : ''] };
+        document.getElementById('quality-btns').style.display = 'flex';
+        currentQuality = 'hd';
+        const ph = document.getElementById('placeholder');
+        ph.innerHTML = '';
+        ph.style.display = 'none';
+        playStream(m3u8);
+        showStatus('✅ Ad-Free Stream', 'ok');
+        updateBadge(true);
+        return true;
+    }
+    killIframe();
+    return false;
+}
+
+function showStatus(text, type) {
+    const el = document.getElementById('stream-status');
+    el.textContent = text;
+    el.style.display = 'block';
+    el.className = 'stream-status ' + (type || '');
+    setTimeout(() => { el.style.display = 'none'; }, 8000);
+}
+
+function updateBadge(adFree) {
+    const badge = document.getElementById('ads-badge');
+    if (adFree) {
+        badge.textContent = '🛡️ ကြော်ငြာမရှိ';
+        badge.style.background = '#28a745';
+    } else {
+        badge.textContent = '⚠️ ကြော်ငြာပါ';
+        badge.style.background = '#dc3545';
+    }
+}
+
+// === Init ===
+async function init() {
+    const params = new URLSearchParams(window.location.search);
+    const matchId = params.get('id');
+    const token = params.get('token');
+
+    // No match ID → go home
+    if (!matchId) {
+        window.location.href = '/';
+        return;
+    }
+
+    // No token → go home
+    if (!token) {
+        showError('တရားဝင် လမ်းကြောင်းမှ ဝင်ရောက်ပါ။');
+        return;
+    }
+
+    // Validate token server-side
+    try {
+        const resp = await fetch(CODE_API + '?action=check&token=' + encodeURIComponent(token));
+        const data = await resp.json();
+
+        if (!data.valid) {
+            showError('ကုဒ်ထည့်ပြီးမှ ပွဲစဉ်ကြည့်နိုင်ပါတယ်။');
+            return;
+        }
+    } catch(e) {
+        // Network error — allow anyway (better UX)
+        console.warn('Token check failed, proceeding anyway:', e);
+    }
+
+    // Token valid → show player
+    validated = true;
+    document.getElementById('player-section').style.display = 'block';
+    document.getElementById('error-page').style.display = 'none';
+
+    // Load match
+    try {
+        const detail = await api({type: 'detail', id: matchId});
+        if (!detail.success) {
+            showError('ပွဲစဉ်အချက်အလက် ရယူမရပါ။');
+            return;
+        }
+        playMatch(detail);
+    } catch(e) {
+        showError('ဆက်သွယ်မှု အမှားရှိနေသည်။');
+    }
+}
+
+function showError(msg) {
+    document.getElementById('error-page').style.display = 'flex';
+    document.getElementById('player-section').style.display = 'none';
+    document.getElementById('error-msg').textContent = msg;
+}
+
+async function playMatch(detail) {
+    const m = detail.data.match_info;
+    const info = document.getElementById('info');
+
+    document.getElementById('i-league').innerHTML = '<img src="' + m.league.flag + '"><span>' + m.league.name + ' • ' + m.league.country + '</span>';
+    document.getElementById('i-status').textContent = getStatus(m.status, m.status_detail);
+    document.getElementById('i-h-badge').src = m.teams.home.badge;
+    document.getElementById('i-h-name').textContent = m.teams.home.name;
+    document.getElementById('i-a-badge').src = m.teams.away.badge;
+    document.getElementById('i-a-name').textContent = m.teams.away.name;
+    document.getElementById('i-score').textContent = m.score.display;
+
+    const v = detail.data.info && detail.data.info.venue;
+    document.getElementById('i-venue').textContent = v ? v.stadium + ' • ' + v.city : '';
+    info.style.display = 'block';
+
+    // Get stream sources
+    const sources = detail.data.sources || [];
+
+    // Try ad-free
+    const streamapiSource = sources.find(s => s.embedUrl && s.embedUrl.includes('streamapi.cc'));
+    const sport99Source = sources.find(s => s.embedUrl && s.embedUrl.includes('sport99.live'));
+
+    if (streamapiSource) {
+        showStatus('🔍 Ad-Free stream ရှာနေသည်...', 'warn');
+        const success = await loadStreamAdFree(streamapiSource.embedUrl);
+        if (success) return;
+    }
+
+    if (sport99Source) {
+        showStatus('🔍 ဒုတိယနည်းလမ်း စမ်းသပ်နေ...', 'warn');
+        const success = await loadStreamAdFree(sport99Source.embedUrl);
+        if (success) return;
+    }
+
+    // Fallback: iframe embed
+    if (sources.length) {
+        currentStreams = null;
+        document.getElementById('quality-btns').style.display = 'none';
+        document.getElementById('loading').classList.remove('active');
+        const ph = document.getElementById('placeholder');
+        ph.innerHTML = '';
+        ph.innerHTML = '<iframe src="' + sources[0].embedUrl + '" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>';
+        ph.style.display = 'block';
+        video.style.display = 'none';
+        showStatus('📺 Stream ဖွင့်နေသည်...', 'warn');
+        updateBadge(false);
+    } else {
+        document.getElementById('loading').classList.remove('active');
+        showStatus('❌ Stream မရှိပါ', 'err');
+    }
+}
+
+// Start
+init();
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
-  "version": 2,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/player", "destination": "/player.html" },
+    { "source": "/api/:path*", "destination": "/api/:path*" }
   ]
 }
