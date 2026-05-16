@@ -139,9 +139,13 @@
         <div id="cw-message"></div>
         <button class="cw-btn" id="cw-submit" onclick="submitCode()">ကုဒ်စစ်ဆေးပါ</button>
         <div class="cw-divider">သို့မဟုတ်</div>
-        <a class="cw-alt-btn" href="https://t.me/yourchannel" target="_blank" rel="noopener">
-            📺 ကြော်ငြာကြည့် → ကုဒ် အခမဲ့ရယူ
-        </a>
+        <button class="cw-alt-btn" id="cw-gen-btn" onclick="generateKey()" style="width:100%">
+            🔑 ကုဒ် အခမဲ့ရယူ
+        </button>
+        <div id="cw-gen-result" style="display:none;margin-bottom:8px;padding:10px;background:rgba(40,167,69,.1);border:1px solid rgba(40,167,69,.3);border-radius:8px">
+            <div style="font-size:10px;color:#888;margin-bottom:4px">ကုဒ်ကို ကူးယူပြီး အပေါ်က ထည့်ပါ</div>
+            <div id="cw-gen-code" style="font-size:18px;font-weight:800;color:#28a745;letter-spacing:3px;user-select:all"></div>
+        </div>
         <a class="cw-alt-btn premium" href="https://t.me/yourchannel" target="_blank" rel="noopener">
             🛡️ Premium ဝယ်ယူ (30 ရက်)
         </a>
@@ -211,6 +215,31 @@ function showCodeWall(matchId, matchData) {
 function closeCodeWall() {
     document.getElementById('code-wall').classList.remove('active');
     pendingMatchId = null;
+}
+
+async function generateKey() {
+    const btn = document.getElementById('cw-gen-btn');
+    const result = document.getElementById('cw-gen-result');
+    const codeEl = document.getElementById('cw-gen-code');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ ရယူနေသည်...';
+
+    try {
+        const resp = await fetch(CODE_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', type: 'free', secret: 'kazuma2026' }) });
+        const data = await resp.json();
+        if (data.success && data.code) {
+            codeEl.textContent = data.code;
+            result.style.display = 'block';
+            btn.textContent = '✅ ရယူပြီး';
+        } else {
+            btn.textContent = '❌ မရသေးပါ';
+            setTimeout(() => { btn.textContent = '🔑 ကုဒ် အခမဲ့ရယူ'; btn.disabled = false; }, 2000);
+        }
+    } catch(e) {
+        btn.textContent = '❌ ဆက်သွယ်မှု အမှား';
+        setTimeout(() => { btn.textContent = '🔑 ကုဒ် အခမဲ့ရယူ'; btn.disabled = false; }, 2000);
+    }
 }
 
 async function submitCode() {

@@ -254,7 +254,7 @@ function startM3u8Interceptor(timeout = 15000) {
 function killIframe() { iframeTrap.innerHTML = ''; }
 
 async function loadStreamAdFree(embedUrl) {
-    showStatus('🔍 m3u8 ရှာဖွေနေသည်... (10s)', 'warn');
+    showStatus('⏳ Stream ပြင်ဆင်နေသည်...', 'warn');
     const m3u8Promise = startM3u8Interceptor(10000);
     iframeTrap.innerHTML = '<iframe src="' + embedUrl + '" width="1" height="1" frameborder="0" allow="encrypted-media" allowfullscreen></iframe>';
     const m3u8 = await m3u8Promise;
@@ -269,7 +269,7 @@ async function loadStreamAdFree(embedUrl) {
         ph.innerHTML = '';
         ph.style.display = 'none';
         playStream(m3u8);
-        showStatus('✅ Ad-Free Stream', 'ok');
+        showStatus('✅ ကြော်ငြာမရှိ Stream', 'ok');
         updateBadge(true);
         return true;
     }
@@ -376,13 +376,13 @@ async function playMatch(detail) {
     const sport99Source = sources.find(s => s.embedUrl && s.embedUrl.includes('sport99.live'));
 
     if (streamapiSource) {
-        showStatus('🔍 Ad-Free stream ရှာနေသည်...', 'warn');
+        showStatus('⏳ Stream ရှာနေသည်...', 'warn');
         const success = await loadStreamAdFree(streamapiSource.embedUrl);
         if (success) return;
     }
 
     if (sport99Source) {
-        showStatus('🔍 ဒုတိယနည်းလမ်း စမ်းသပ်နေ...', 'warn');
+        showStatus('⏳ နောက်ဆုံးနည်းလမ်း စမ်းသပ်နေ...', 'warn');
         const success = await loadStreamAdFree(sport99Source.embedUrl);
         if (success) return;
     }
@@ -397,11 +397,11 @@ async function playMatch(detail) {
         ph.innerHTML = '<iframe src="' + sources[0].embedUrl + '" width="100%" height="100%" frameborder="0" scrolling="no" allow="autoplay;fullscreen;encrypted-media" allowfullscreen></iframe>';
         ph.style.display = 'block';
         video.style.display = 'none';
-        showStatus('📺 Stream ဖွင့်နေသည်...', 'warn');
+        showStatus('📺 ပွဲစဉ်ဖွင့်နေသည်...', 'warn');
         updateBadge(false);
     } else {
         document.getElementById('loading').classList.remove('active');
-        showStatus('❌ Stream မရှိပါ', 'err');
+        showStatus('❌ ပွဲစဉ်မစတင်ရသေးပါ', 'err');
     }
 }
 
