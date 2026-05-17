@@ -8,9 +8,9 @@ const TOKEN_EXPIRY_MS = 4 * 60 * 60 * 1000; // 4 hours per token
 
 // Premium codes: { code, expiresAt }
 const premiumCodes = [
-    { code: 'PREMIUM1', createdAt: '2026-01-01T00:00:00Z' },
-    { code: 'PREMIUM2', createdAt: '2026-01-01T00:00:00Z' },
-    { code: 'VIP2026', createdAt: '2026-01-01T00:00:00Z' },
+    { code: 'PREMIUM1', createdAt: '2026-05-01T00:00:00Z' },
+    { code: 'PREMIUM2', createdAt: '2026-05-01T00:00:00Z' },
+    { code: 'VIP2026', createdAt: '2026-05-01T00:00:00Z' },
 ];
 
 let dynamicPremiumCodes = [];
