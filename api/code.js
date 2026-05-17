@@ -15,50 +15,42 @@ const premiumCodes = [
 
 let dynamicPremiumCodes = [];
 
-// === Vercel KV Integration (optional) ===
+// === Vercel KV Integration (lazy init, no top-level await) ===
 let kv = null;
-let kvReady = false;
+let kvInitialized = false;
 
-try {
-    const mod = await import('@vercel/kv');
-    kv = mod.kv || (mod.default && mod.default.kv) || mod.default || null;
-    // Test if KV is actually configured (has env vars)
-    if (kv && typeof kv.get === 'function') {
-        // Attempt a lightweight read to confirm KV is wired up
-        const test = await kv.get('__kv_test__').catch(() => null);
-        kvReady = true;
-    }
-} catch (e) {
-    // @vercel/kv not installed or not configured
-    kv = null;
-    kvReady = false;
-}
-
-const KV_KEY = 'football:dynamic_premium_codes';
-
-async function loadDynamicCodesFromKV() {
-    if (!kvReady) return;
+async function initKV() {
+    if (kvInitialized) return;
+    kvInitialized = true;
     try {
-        const stored = await kv.get(KV_KEY);
-        if (Array.isArray(stored)) {
-            dynamicPremiumCodes = stored;
+        const mod = await import('@vercel/kv');
+        kv = mod.kv || (mod.default && mod.default.kv) || mod.default || null;
+        if (kv && typeof kv.get === 'function') {
+            // Test connection
+            await kv.get('__kv_test__').catch(() => null);
+        } else {
+            kv = null;
         }
     } catch (e) {
-        // Fall back to in-memory
+        kv = null;
+    }
+    // Load saved dynamic codes from KV
+    if (kv) {
+        try {
+            const stored = await kv.get('football:dynamic_premium_codes');
+            if (Array.isArray(stored)) {
+                dynamicPremiumCodes = stored;
+            }
+        } catch (e) {}
     }
 }
 
 async function saveDynamicCodesToKV() {
-    if (!kvReady) return;
+    if (!kv) return;
     try {
-        await kv.set(KV_KEY, dynamicPremiumCodes);
-    } catch (e) {
-        // Silently fail — in-memory still works
-    }
+        await kv.set('football:dynamic_premium_codes', dynamicPremiumCodes);
+    } catch (e) {}
 }
-
-// Load from KV on cold start
-await loadDynamicCodesFromKV();
 
 const FREE_WINDOW_MS = 4 * 60 * 60 * 1000;
 const PREMIUM_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -87,14 +79,13 @@ function generateToken(code, type, expiresAt) {
     let encrypted = cipher.update(payload, 'utf8', 'base64');
     encrypted += cipher.final('base64');
     const tag = cipher.getAuthTag();
-    // token = iv.tag.encrypted (all base64)
     return Buffer.concat([iv, tag, Buffer.from(encrypted, 'base64')]).toString('base64url');
 }
 
 function verifyToken(tokenStr) {
     try {
         const raw = Buffer.from(tokenStr, 'base64url');
-        if (raw.length < 13) return null; // 12 iv + at least 1 byte
+        if (raw.length < 13) return null;
         const iv = raw.subarray(0, 12);
         const tag = raw.subarray(12, 28);
         const encrypted = raw.subarray(28);
@@ -104,9 +95,7 @@ function verifyToken(tokenStr) {
         let decrypted = decipher.update(encrypted, undefined, 'utf8');
         decrypted += decipher.final('utf8');
         const payload = JSON.parse(decrypted);
-        // Check token expiry (not code expiry)
         if (Date.now() - payload.ts > TOKEN_EXPIRY_MS) return null;
-        // Check code still valid
         if (payload.expiresAt && Date.now() > new Date(payload.expiresAt).getTime()) return null;
         return payload;
     } catch {
@@ -141,8 +130,7 @@ function validateCode(code) {
     const upper = code.toUpperCase().trim();
     const currentFree = generateFreeCode();
     if (upper === currentFree) {
-        const expiresAt = getFreeCodeExpiry();
-        return { valid: true, type: 'free', expiresAt };
+        return { valid: true, type: 'free', expiresAt: getFreeCodeExpiry() };
     }
     const premiumResult = isPremiumCodeValid(upper);
     if (premiumResult.valid) return premiumResult;
@@ -173,7 +161,7 @@ async function generatePremiumCodeAction() {
     return { code, type: 'premium', expiresAt: new Date(expiresAt).toISOString() };
 }
 
-async function deleteCode(code) {
+async function deleteCodeAction(code) {
     const upper = code.toUpperCase().trim();
     const idx = dynamicPremiumCodes.findIndex(c => c.code === upper);
     if (idx !== -1) {
@@ -186,6 +174,9 @@ async function deleteCode(code) {
 
 // === Handler ===
 export default async function handler(req, res) {
+    // Init KV on first request (lazy)
+    await initKV();
+
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Secret');
@@ -196,7 +187,6 @@ export default async function handler(req, res) {
         if (req.method === 'GET') {
             const { action, code, token } = req.query;
 
-            // Validate code → returns signed token
             if (action === 'validate') {
                 if (!code) return res.status(400).json({ error: 'Missing code parameter' });
                 const result = validateCode(code);
@@ -206,21 +196,16 @@ export default async function handler(req, res) {
                 return res.status(200).json(result);
             }
 
-            // Check if token is valid (used by player page)
             if (action === 'check') {
                 if (!token) return res.status(200).json({ valid: false });
                 const payload = verifyToken(token);
-                if (payload) {
-                    return res.status(200).json({ valid: true, type: payload.type });
-                }
-                return res.status(200).json({ valid: false });
+                return res.status(200).json(payload ? { valid: true, type: payload.type } : { valid: false });
             }
 
-            // Admin: list all codes
             if (action === 'codes') {
                 const secret = req.headers['x-admin-secret'];
                 if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Unauthorized' });
-                return res.status(200).json({ codes: getAllActiveCodes(), kvEnabled: kvReady });
+                return res.status(200).json({ codes: getAllActiveCodes(), kvEnabled: !!kv });
             }
 
             return res.status(400).json({ error: 'Invalid action' });
@@ -244,7 +229,7 @@ export default async function handler(req, res) {
 
             if (action === 'delete') {
                 if (!code) return res.status(400).json({ error: 'Missing code' });
-                return res.status(200).json({ success: await deleteCode(code) });
+                return res.status(200).json({ success: await deleteCodeAction(code) });
             }
 
             return res.status(400).json({ error: 'Invalid action' });
