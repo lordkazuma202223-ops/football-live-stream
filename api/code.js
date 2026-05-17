@@ -15,6 +15,51 @@ const premiumCodes = [
 
 let dynamicPremiumCodes = [];
 
+// === Vercel KV Integration (optional) ===
+let kv = null;
+let kvReady = false;
+
+try {
+    const mod = await import('@vercel/kv');
+    kv = mod.kv || (mod.default && mod.default.kv) || mod.default || null;
+    // Test if KV is actually configured (has env vars)
+    if (kv && typeof kv.get === 'function') {
+        // Attempt a lightweight read to confirm KV is wired up
+        const test = await kv.get('__kv_test__').catch(() => null);
+        kvReady = true;
+    }
+} catch (e) {
+    // @vercel/kv not installed or not configured
+    kv = null;
+    kvReady = false;
+}
+
+const KV_KEY = 'football:dynamic_premium_codes';
+
+async function loadDynamicCodesFromKV() {
+    if (!kvReady) return;
+    try {
+        const stored = await kv.get(KV_KEY);
+        if (Array.isArray(stored)) {
+            dynamicPremiumCodes = stored;
+        }
+    } catch (e) {
+        // Fall back to in-memory
+    }
+}
+
+async function saveDynamicCodesToKV() {
+    if (!kvReady) return;
+    try {
+        await kv.set(KV_KEY, dynamicPremiumCodes);
+    } catch (e) {
+        // Silently fail — in-memory still works
+    }
+}
+
+// Load from KV on cold start
+await loadDynamicCodesFromKV();
+
 const FREE_WINDOW_MS = 4 * 60 * 60 * 1000;
 const PREMIUM_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -119,18 +164,23 @@ function getAllActiveCodes() {
     return codes;
 }
 
-function generatePremiumCode() {
+async function generatePremiumCodeAction() {
     const code = 'PRM' + crypto.randomBytes(4).toString('hex').toUpperCase();
     const entry = { code, createdAt: new Date().toISOString() };
     dynamicPremiumCodes.push(entry);
+    await saveDynamicCodesToKV();
     const expiresAt = new Date(entry.createdAt).getTime() + PREMIUM_DURATION_MS;
     return { code, type: 'premium', expiresAt: new Date(expiresAt).toISOString() };
 }
 
-function deleteCode(code) {
+async function deleteCode(code) {
     const upper = code.toUpperCase().trim();
     const idx = dynamicPremiumCodes.findIndex(c => c.code === upper);
-    if (idx !== -1) { dynamicPremiumCodes.splice(idx, 1); return true; }
+    if (idx !== -1) {
+        dynamicPremiumCodes.splice(idx, 1);
+        await saveDynamicCodesToKV();
+        return true;
+    }
     return false;
 }
 
@@ -170,7 +220,7 @@ export default async function handler(req, res) {
             if (action === 'codes') {
                 const secret = req.headers['x-admin-secret'];
                 if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Unauthorized' });
-                return res.status(200).json({ codes: getAllActiveCodes() });
+                return res.status(200).json({ codes: getAllActiveCodes(), kvEnabled: kvReady });
             }
 
             return res.status(400).json({ error: 'Invalid action' });
@@ -184,7 +234,8 @@ export default async function handler(req, res) {
 
             if (action === 'generate') {
                 if (type === 'premium') {
-                    return res.status(200).json({ success: true, ...generatePremiumCode() });
+                    const result = await generatePremiumCodeAction();
+                    return res.status(200).json({ success: true, ...result });
                 } else if (type === 'free') {
                     return res.status(200).json({ success: true, code: generateFreeCode(), type: 'free', expiresAt: getFreeCodeExpiry() });
                 }
@@ -193,7 +244,7 @@ export default async function handler(req, res) {
 
             if (action === 'delete') {
                 if (!code) return res.status(400).json({ error: 'Missing code' });
-                return res.status(200).json({ success: deleteCode(code) });
+                return res.status(200).json({ success: await deleteCode(code) });
             }
 
             return res.status(400).json({ error: 'Invalid action' });
