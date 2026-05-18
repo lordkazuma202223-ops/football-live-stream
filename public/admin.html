@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard - Football Stream</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0a0a0f;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+.header {
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+  border-bottom: 2px solid #e94560;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 { font-size: 1.3rem; color: #e94560; }
+.header .logout-btn {
+  background: transparent; border: 1px solid #e94560; color: #e94560;
+  padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+}
+.header .logout-btn:hover { background: #e94560; color: #fff; }
+
+/* Login Screen */
+.login-overlay {
+  position: fixed; inset: 0; background: #0a0a0f;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.login-box {
+  background: #1a1a2e; border: 1px solid #e94560; border-radius: 12px;
+  padding: 40px 32px; width: 90%; max-width: 380px; text-align: center;
+}
+.login-box h2 { color: #e94560; margin-bottom: 8px; }
+.login-box p { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
+.login-box input {
+  width: 100%; padding: 12px 16px; background: #0a0a0f; border: 1px solid #333;
+  border-radius: 8px; color: #fff; font-size: 1rem; margin-bottom: 16px; outline: none;
+}
+.login-box input:focus { border-color: #e94560; }
+.login-box button {
+  width: 100%; padding: 12px; background: #e94560; color: #fff;
+  border: none; border-radius: 8px; font-size: 1rem; cursor: pointer;
+  font-weight: 600;
+}
+.login-box button:hover { background: #d63851; }
+.login-error { color: #ff6b6b; font-size: 0.85rem; margin-top: 12px; min-height: 20px; }
+
+/* Dashboard */
+.dashboard { display: none; padding: 20px; max-width: 900px; margin: 0 auto; }
+
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.stat-card {
+  background: #1a1a2e; border-radius: 10px; padding: 16px; text-align: center;
+  border: 1px solid #2a2a3e;
+}
+.stat-card .label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card .value { font-size: 1.8rem; font-weight: 700; color: #e94560; margin-top: 4px; }
+.stat-card .sub { font-size: 0.75rem; color: #666; margin-top: 2px; }
+
+/* Free Code Box */
+.free-code-box {
+  background: #1a1a2e; border: 1px solid #e94560; border-radius: 10px;
+  padding: 20px; margin-bottom: 24px; text-align: center;
+}
+.free-code-box .label { font-size: 0.85rem; color: #888; margin-bottom: 8px; }
+.free-code-box .code {
+  font-size: 2rem; font-weight: 700; color: #e94560;
+  font-family: 'Courier New', monospace; letter-spacing: 4px;
+}
+.free-code-box .expiry { font-size: 0.8rem; color: #666; margin-top: 8px; }
+
+/* Section */
+.section-title {
+  font-size: 1.1rem; color: #e0e0e0; margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.section-title button {
+  background: #e94560; color: #fff; border: none; padding: 8px 16px;
+  border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+}
+.section-title button:hover { background: #d63851; }
+.section-title button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Codes Table */
+.codes-list { margin-bottom: 24px; }
+.code-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #1a1a2e; border-radius: 8px; padding: 12px 16px;
+  margin-bottom: 8px; border: 1px solid #2a2a3e;
+  flex-wrap: wrap; gap: 8px;
+}
+.code-row .code-val {
+  font-family: 'Courier New', monospace; font-weight: 600; font-size: 1rem;
+  color: #fff;
+}
+.code-row .code-type {
+  padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase;
+}
+.code-row .code-type.premium { background: #e9456033; color: #e94560; }
+.code-row .code-type.free { background: #2ecc7133; color: #2ecc71; }
+.code-row .code-type.static { background: #f39c1233; color: #f39c12; }
+.code-row .code-expiry { font-size: 0.8rem; color: #666; }
+.code-row .delete-btn {
+  background: transparent; border: 1px solid #ff4757; color: #ff4757;
+  padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+}
+.code-row .delete-btn:hover { background: #ff4757; color: #fff; }
+.code-row .delete-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.empty-state { text-align: center; color: #555; padding: 24px; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; right: 20px; padding: 12px 20px;
+  border-radius: 8px; color: #fff; font-size: 0.9rem; z-index: 200;
+  transform: translateY(100px); opacity: 0; transition: all 0.3s ease;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: #2ecc71; }
+.toast.error { background: #e94560; }
+
+@media (max-width: 600px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .free-code-box .code { font-size: 1.4rem; letter-spacing: 2px; }
+  .code-row { flex-direction: column; align-items: flex-start; }
+  .dashboard { padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>🔒 Admin Panel</h2>
+    <p>Football Stream Admin Dashboard</p>
+    <input type="password" id="secretInput" placeholder="Enter admin secret..." autocomplete="off">
+    <button onclick="doLogin()">Login</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header" id="mainHeader" style="display:none">
+  <h1>⚡ Admin Dashboard</h1>
+  <button class="logout-btn" onclick="doLogout()">Logout</button>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total Codes</div>
+      <div class="value" id="statTotal">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Premium</div>
+      <div class="value" id="statPremium">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Free Code</div>
+      <div class="value" id="statFree" style="font-size:1.2rem;">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Free Expires In</div>
+      <div class="value" id="statCountdown" style="font-size:1.2rem;">-</div>
+    </div>
+  </div>
+
+  <!-- Current Free Code -->
+  <div class="free-code-box">
+    <div class="label">Current Free Code (လက်ရှိ အခမဲ့ကုဒ်)</div>
+    <div class="code" id="freeCodeDisplay">-</div>
+    <div class="expiry" id="freeCodeExpiry">-</div>
+  </div>
+
+  <!-- All Codes -->
+  <div class="section-title">
+    <span>All Active Codes (ကုဒ်အားလုံး)</span>
+    <button onclick="generatePremium()" id="genBtn">+ Generate Premium</button>
+  </div>
+  <div class="codes-list" id="codesList">
+    <div class="empty-state">Loading...</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+let SECRET = '';
+let codes = [];
+let countdownInterval = null;
+
+// === Toast ===
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// === Login ===
+async function doLogin() {
+  const input = document.getElementById('secretInput');
+  const errEl = document.getElementById('loginError');
+  const s = input.value.trim();
+  if (!s) { errEl.textContent = 'Please enter admin secret'; return; }
+
+  errEl.textContent = 'Verifying...';
+  try {
+    const res = await fetch('/api/code?action=codes', {
+      headers: { 'X-Admin-Secret': s }
+    });
+    if (res.ok) {
+      SECRET = s;
+      sessionStorage.setItem('admin_secret', s);
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('mainHeader').style.display = 'flex';
+      document.getElementById('dashboard').style.display = 'block';
+      await refreshCodes();
+      startCountdown();
+    } else {
+      errEl.textContent = 'Invalid admin secret';
+    }
+  } catch (e) {
+    errEl.textContent = 'Connection error';
+  }
+}
+
+function doLogout() {
+  SECRET = '';
+  sessionStorage.removeItem('admin_secret');
+  if (countdownInterval) clearInterval(countdownInterval);
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('mainHeader').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('secretInput').value = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+// Auto-login from session
+(function() {
+  const saved = sessionStorage.getItem('admin_secret');
+  if (saved) {
+    document.getElementById('secretInput').value = saved;
+    doLogin();
+  }
+})();
+
+// === Refresh Codes ===
+async function refreshCodes() {
+  try {
+    const res = await fetch('/api/code?action=codes', {
+      headers: { 'X-Admin-Secret': SECRET }
+    });
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    codes = data.codes || [];
+    renderCodes();
+    updateStats();
+  } catch (e) {
+    showToast('Failed to load codes', 'error');
+  }
+}
+
+// === Render ===
+function renderCodes() {
+  const container = document.getElementById('codesList');
+  if (!codes.length) {
+    container.innerHTML = '<div class="empty-state">No active codes found</div>';
+    return;
+  }
+  container.innerHTML = codes.map(c => {
+    const isStatic = ['PREMIUM1','PREMIUM2','VIP2026'].includes(c.code);
+    const isFree = c.type === 'free';
+    const typeLabel = isFree ? 'free' : (isStatic ? 'static' : 'premium');
+    const typeClass = isFree ? 'free' : (isStatic ? 'static' : 'premium');
+    const canDelete = !isFree && !isStatic;
+    const expiry = c.expiresAt ? new Date(c.expiresAt).toLocaleString() : 'N/A';
+
+    return `<div class="code-row">
+      <span class="code-val">${c.code}</span>
+      <span class="code-type ${typeClass}">${typeLabel}</span>
+      <span class="code-expiry">Expires: ${expiry}</span>
+      ${canDelete ? `<button class="delete-btn" onclick="deleteCode('${c.code}')">Delete</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function updateStats() {
+  const freeCode = codes.find(c => c.type === 'free');
+  const premiums = codes.filter(c => c.type === 'premium');
+
+  document.getElementById('statTotal').textContent = codes.length;
+  document.getElementById('statPremium').textContent = premiums.length;
+  document.getElementById('statFree').textContent = freeCode ? freeCode.code : '-';
+  document.getElementById('freeCodeDisplay').textContent = freeCode ? freeCode.code : '-';
+
+  if (freeCode && freeCode.expiresAt) {
+    document.getElementById('freeCodeExpiry').textContent =
+      'Expires: ' + new Date(freeCode.expiresAt).toLocaleString();
+  }
+}
+
+// === Countdown ===
+function startCountdown() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    const freeCode = codes.find(c => c.type === 'free');
+    if (freeCode && freeCode.expiresAt) {
+      const diff = new Date(freeCode.expiresAt) - Date.now();
+      if (diff <= 0) {
+        document.getElementById('statCountdown').textContent = 'Expired';
+        refreshCodes(); // auto-refresh on expiry
+      } else {
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        document.getElementById('statCountdown').textContent =
+          `${h}h ${m}m ${s}s`;
+      }
+    }
+  }, 1000);
+
+  // Also auto-refresh codes every 60s
+  setInterval(refreshCodes, 60000);
+}
+
+// === Generate Premium Code ===
+async function generatePremium() {
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  try {
+    const res = await fetch('/api/code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'generate', type: 'premium', secret: SECRET })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Generated: ' + data.code);
+      await refreshCodes();
+    } else {
+      showToast(data.error || 'Failed', 'error');
+    }
+  } catch (e) {
+    showToast('Error generating code', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '+ Generate Premium';
+}
+
+// === Delete Code ===
+async function deleteCode(code) {
+  if (!confirm('Delete code ' + code + '?')) return;
+  try {
+    const res = await fetch('/api/code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', code, secret: SECRET })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Deleted: ' + code);
+      await refreshCodes();
+    } else {
+      showToast('Delete failed', 'error');
+    }
+  } catch (e) {
+    showToast('Error deleting code', 'error');
+  }
+}
+
+// Enter key on login
+document.getElementById('secretInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>
