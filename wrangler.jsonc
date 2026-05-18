@@ -1,13 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "football-live-stream",
+  "pages_build_output_dir": "./public",
   "compatibility_date": "2026-05-18",
-  "main": "worker.js",
-  "assets": {
-    "directory": "./public"
-  },
   "compatibility_flags": [
     "nodejs_compat"
-  ],
-  "serve_directly": false
+  ]
 }
