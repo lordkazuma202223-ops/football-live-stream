@@ -179,7 +179,18 @@ function getStatus(status, detail) {
 // === API ===
 async function api(params) {
     const r = await fetch(API_PROXY + '?' + new URLSearchParams(params));
-    return r.json();
+    if (!r.ok) {
+        throw new Error('ဆာဗာမှာ ပြဿနာရှိနေသည် (' + r.status + ')');
+    }
+    const text = await r.text();
+    if (!text || !text.trim()) {
+        throw new Error('API မှ ဒေတာမရရှိပါ။ Token limit ရောက်နေသဖြင့် ခဏခဏ ပြန်စမ်းကြည့်ပါ။');
+    }
+    try {
+        return JSON.parse(text);
+    } catch(e) {
+        throw new Error('API မှ မမှန်ကန်သော ဒေတာ ရရှိနေသည်။ ခဏငြား ပြန်စမ်းကြည့်ပါ။');
+    }
 }
 
 // === Code Wall ===
@@ -384,7 +395,15 @@ async function loadMatches() {
         renderLeagueTabs();
         renderMatchList();
     } catch(e) {
-        el.innerHTML = '<div class="loading">❌ ' + e.message + '</div>';
+        el.innerHTML = '<div style="text-align:center;padding:30px 16px">' +
+            '<div style="font-size:36px;margin-bottom:12px">⚠️</div>' +
+            '<div style="font-size:14px;font-weight:700;color:#e94560;margin-bottom:8px">ဒေတာ ရယူ၍ မရပါ</div>' +
+            '<div style="font-size:12px;color:#888;line-height:1.6">' +
+            (e.message || 'အမည်မသိ အမှားပြ') +
+            '<br><br>' +
+            '<button onclick="loadMatches()" style="background:linear-gradient(135deg,#e94560,#c0392b);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 ပြန်စမ်းကြည့်ပါ</button>' +
+            '</div></div>';
+        document.getElementById('league-tabs').innerHTML = '';
     }
 }
 
