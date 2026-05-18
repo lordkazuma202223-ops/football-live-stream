@@ -304,7 +304,7 @@ async function submitCode() {
 
             setTimeout(() => {
                 // Redirect to player page with match ID and token
-                window.location.href = '/player?id=' + encodeURIComponent(pendingMatchId) + '&token=' + encodeURIComponent(data.token);
+                window.location.href = '/player.html?id=' + encodeURIComponent(pendingMatchId) + '&token=' + encodeURIComponent(data.token);
             }, 800);
         } else {
             msgEl.innerHTML = '<div class="cw-error">❌ ကုဒ်မမှန်ကန်ပါ။ ထပ်စမ်းကြည့်ပါ။</div>';
@@ -341,7 +341,7 @@ function showMatch(id) {
             .then(r => r.json())
             .then(data => {
                 if (data.valid) {
-                    window.location.href = '/player?id=' + encodeURIComponent(id) + '&token=' + encodeURIComponent(data.token);
+                    window.location.href = '/player.html?id=' + encodeURIComponent(id) + '&token=' + encodeURIComponent(data.token);
                 } else {
                     // Stored code expired, show code wall
                     localStorage.removeItem('cw_code');
@@ -350,7 +350,7 @@ function showMatch(id) {
             })
             .catch(() => {
                 // Network error, try anyway with stored code
-                window.location.href = '/player?id=' + encodeURIComponent(id);
+                window.location.href = '/player.html?id=' + encodeURIComponent(id);
             });
         return;
     }
@@ -498,11 +498,20 @@ function filterBySearch(matches) {
 
 function renderLeagueTabs() {
     const tabs = document.getElementById('league-tabs');
-    let html = '<div class="league-tab ' + (activeLeague === 'all' ? 'active' : '') + '" onclick="filterLeague(\'all\')">⚽ အားလုံး <span class="count">' + allLeagues.reduce((s,l) => s + l.matches.length, 0) + '</span></div>';
+    // Count matches after applying status + search filter
+    let totalFiltered = 0;
     for (const lg of allLeagues) {
+        let m = filterByStatus(lg.matches);
+        m = filterBySearch(m);
+        lg._filteredCount = m.length;
+        totalFiltered += m.length;
+    }
+    let html = '<div class="league-tab ' + (activeLeague === 'all' ? 'active' : '') + '" onclick="filterLeague(\'all\')">⚽ အားလုံး <span class="count">' + totalFiltered + '</span></div>';
+    for (const lg of allLeagues) {
+        if (lg._filteredCount === 0) continue; // Hide leagues with no matching matches
         const liveCount = lg.matches.filter(m => m.status === 'inprogress').length;
         const badge = liveCount > 0 ? '🔴' : '';
-        html += '<div class="league-tab ' + (activeLeague === lg.key ? 'active' : '') + '" onclick="filterLeague(\'' + lg.key.replace(/'/g, "\\'") + '\')"><img src="' + (lg.league.flag || lg.league.logo) + '">' + badge + ' ' + lg.league.name + ' <span class="count">' + lg.matches.length + '</span></div>';
+        html += '<div class="league-tab ' + (activeLeague === lg.key ? 'active' : '') + '" onclick="filterLeague(\'' + lg.key.replace(/'/g, "\\'") + '\')"><img src="' + (lg.league.flag || lg.league.logo) + '">' + badge + ' ' + lg.league.name + ' <span class="count">' + lg._filteredCount + '</span></div>';
     }
     tabs.innerHTML = html;
 }
