@@ -3,12 +3,12 @@
 
 // Cloudflare Pages Function - SportSRC API Proxy with Token Gate + Backup Key
 
-const API_KEYS=***
+const API_KEYS = [
     '1646b557918b959551995d03415e74b5',
     'ed5e2ba05923ceb4ab2aca57e8aa94c3',
 ];
 const API_BASE = 'https://api.sportsrc.org/v2/';
-const TOKEN_SECRET='token_...ball';
+const TOKEN_SECRET = 'token_secret_2026_football';
 
 function encode(str) { return new TextEncoder().encode(str); }
 function decode(buf) { return new TextDecoder().decode(buf); }
@@ -93,13 +93,14 @@ async function handleMatches(context) {
     return Response.json({ success: false, error: 'API keys အားလုံး limit ရောက်နေပါသည်။ ခဏခဏ ပြန်စမ်းကြည့်ပါ။', detail: lastError }, { status: 429, headers: corsAndJson });
 }
 
+
 // Cloudflare Pages Function - Code Wall System (Web Crypto API)
 // No Node.js crypto — uses standard Web Crypto API
 
-const ADMIN_SECRET='***';
-const CODE_SECRET='footba...cret';
-const TOKEN_SECRET='token_...ball';
-const TOKEN_EXPIRY_MS=*** * 60 * 60 * 1000;
+const ADMIN_SECRET = 'kazuma2026';
+const CODE_SECRET = 'football2026secret';
+const TOKEN_SECRET = 'token_secret_2026_football';
+const TOKEN_EXPIRY_MS = 4 * 60 * 60 * 1000;
 
 // Static premium codes
 const premiumCodes = [
@@ -337,6 +338,7 @@ async function handleCode(context) {
     }
 }
 
+
 // Cloudflare Pages Function - Stream URL Extractor
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 
@@ -417,6 +419,7 @@ async function handleStream(context) {
     }
 }
 
+
 // Cloudflare Pages Function - CORS Proxy
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 
@@ -453,19 +456,18 @@ async function handleProxy(context) {
     }
 }
 
+
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
         const path = url.pathname;
         const context = { request, env, ctx };
 
-        // API routes
         if (path === '/api/matches') return handleMatches(context);
         if (path === '/api/code') return handleCode(context);
         if (path === '/api/stream') return handleStream(context);
         if (path === '/api/proxy') return handleProxy(context);
 
-        // Static assets handled by Cloudflare via assets config
         return new Response('Not Found', { status: 404 });
     }
 };
