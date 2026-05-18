@@ -74,8 +74,9 @@ export default async function handler(req, res) {
                 if (data && data.trim()) {
                     try {
                         const json = JSON.parse(data);
-                        if (json.error && (json.error.includes('limit') || json.error.includes('token') || json.error.includes('quota') || json.error.includes('rate'))) {
-                            lastError = json.error;
+                        const errMsg = (json.error || json.message || '').toLowerCase();
+                        if (!json.success && (errMsg.includes('limit') || errMsg.includes('token') || errMsg.includes('quota') || errMsg.includes('rate') || errMsg.includes('error'))) {
+                            lastError = json.error || json.message;
                             continue;
                         }
                     } catch {}

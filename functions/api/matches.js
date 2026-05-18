@@ -74,9 +74,10 @@ export async function onRequest(context) {
             if (data && data.trim()) {
                 try {
                     const json = JSON.parse(data);
-                    // If API returns rate limit / token error, try next key
-                    if (json.error && (json.error.includes('limit') || json.error.includes('token') || json.error.includes('quota') || json.error.includes('rate'))) {
-                        lastError = json.error;
+                    // If API returns rate limit / error, try next key
+                    const errMsg = (json.error || json.message || '').toLowerCase();
+                    if (!json.success && (errMsg.includes('limit') || errMsg.includes('token') || errMsg.includes('quota') || errMsg.includes('rate') || errMsg.includes('error'))) {
+                        lastError = json.error || json.message;
                         continue;
                     }
                 } catch {}
