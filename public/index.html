@@ -130,7 +130,7 @@
     </div>
     <div class="header-btns">
         <span class="live-badge">● တိုက်ရိုက်</span>
-        <button class="refresh-btn" onclick="loadMatches()">🔄</button>
+        <button class="refresh-btn" onclick="forceRefresh()">🔄</button>
     </div>
 </div>
 
@@ -181,6 +181,7 @@
 const API_PROXY = '/api/matches';
 const CODE_API = '/api/code';
 let pendingMatchId = null;
+let forceCacheBust = false;
 
 // Status translations
 const statusMap = {
@@ -202,7 +203,9 @@ function getStatus(status, detail) {
 
 // === API ===
 async function api(params) {
+    if (forceCacheBust) params._t = Date.now();
     const r = await fetch(API_PROXY + '?' + new URLSearchParams(params));
+    forceCacheBust = false;
     if (!r.ok) {
         throw new Error('ဆာဗာမှာ ပြဿနာရှိနေသည် (' + r.status + ')');
     }
@@ -378,6 +381,12 @@ let allLeagues = [];
 let activeLeague = 'all';
 let activeStatus = 'all'; // 'all', 'live', 'upcoming'
 let searchQuery = '';
+
+// === Force Refresh (bypass cache) ===
+function forceRefresh() {
+    forceCacheBust = true;
+    loadMatches();
+}
 
 async function loadMatches() {
     const el = document.getElementById('match-list');

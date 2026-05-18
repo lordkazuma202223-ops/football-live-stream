@@ -1,4 +1,4 @@
-// Cloudflare Pages Function - SportSRC API Proxy with Token Gate + Backup Key
+// Cloudflare Pages Function - SportSRC API Proxy with Token Gate + Backup Key + Cache
 
 const API_KEYS = [
     '1646b557918b959551995d03415e74b5',
@@ -29,6 +29,15 @@ async function verifyToken(tokenStr) {
     } catch { return null; }
 }
 
+// Cache durations based on match status
+function getCacheTTL(params) {
+    const status = params.get('status') || '';
+    if (status === 'inprogress') return 60;        // Live: 1 minute
+    if (status === 'upcoming') return 300;          // Upcoming: 5 minutes
+    if (status === 'finished') return 3600;         // Finished: 1 hour
+    return 120;                                      // All matches: 2 minutes
+}
+
 export async function onRequest(context) {
     const request = context.request;
     const url = new URL(request.url);
@@ -45,6 +54,7 @@ export async function onRequest(context) {
         return new Response(null, { status: 200, headers: corsHeaders });
     }
 
+    // Token gate for detail requests
     if (type === 'detail') {
         const token = params.get('token');
         if (!token) {
@@ -55,6 +65,36 @@ export async function onRequest(context) {
             return Response.json({ success: false, error: 'Invalid or expired token.' }, { status: 403, headers: corsHeaders });
         }
         params.delete('token');
+    }
+
+    // --- Cache Layer ---
+    const cacheKey = new Request(url.toString(), { method: 'GET' });
+    const cache = caches.default;
+
+    // Force refresh: skip cache if _t param present (user manual refresh)
+    const forceRefresh = params.has('_t');
+    if (forceRefresh) params.delete('_t');
+
+    if (!forceRefresh) {
+        try {
+            const cached = await cache.match(cacheKey);
+            if (cached) {
+                const cachedHeaders = new Headers(cached.headers);
+                const age = Math.floor((Date.now() - parseInt(cachedHeaders.get('x-cache-time') || '0')) / 1000);
+                const ttl = parseInt(cachedHeaders.get('x-cache-ttl') || '120');
+                if (age < ttl) {
+                    // Cache hit - return cached response
+                    const resp = new Response(cached.body, {
+                        status: cached.status,
+                        headers: cachedHeaders
+                    });
+                    resp.headers.set('X-Cache', 'HIT');
+                    resp.headers.set('X-Cache-Age', age + 's');
+                    resp.headers.set('X-Cache-TTL', ttl + 's');
+                    return resp;
+                }
+            }
+        } catch (e) {}
     }
 
     params.delete('api_key');
@@ -70,18 +110,35 @@ export async function onRequest(context) {
                 headers: { 'User-Agent': 'Mozilla/5.0', 'X-API-KEY': apiKey }
             });
             const data = await resp.text();
-            // Check if response is valid (not empty or error from API)
             if (data && data.trim()) {
                 try {
                     const json = JSON.parse(data);
-                    // If API returns rate limit / error, try next key
                     const errMsg = (json.error || json.message || '').toLowerCase();
                     if (!json.success && (errMsg.includes('limit') || errMsg.includes('token') || errMsg.includes('quota') || errMsg.includes('rate') || errMsg.includes('error'))) {
                         lastError = json.error || json.message;
                         continue;
                     }
                 } catch {}
-                return new Response(data, { status: 200, headers: corsAndJson });
+
+                // Store in cache with TTL
+                const ttl = getCacheTTL(params);
+                const cacheResponse = new Response(data, {
+                    status: 200,
+                    headers: {
+                        ...corsAndJson,
+                        'Cache-Control': 'public, max-age=' + ttl,
+                        'X-Cache': 'MISS',
+                        'X-Cache-Time': Date.now().toString(),
+                        'X-Cache-TTL': ttl.toString(),
+                    }
+                });
+
+                // Put in Cloudflare Cache (wait for it)
+                try {
+                    await cache.put(cacheKey, cacheResponse.clone());
+                } catch (e) {}
+
+                return cacheResponse;
             }
             lastError = 'Empty response from API';
         } catch (e) {
