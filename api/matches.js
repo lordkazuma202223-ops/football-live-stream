@@ -1,7 +1,10 @@
-// Vercel Serverless Function - SportSRC API Proxy with Token Gate
+// Vercel Serverless Function - SportSRC API Proxy with Token Gate + Backup Key
 import crypto from 'crypto';
 
-const API_KEY = '1646b557918b959551995d03415e74b5';
+const API_KEYS = [
+    '1646b557918b959551995d03415e74b5',
+    'ed5e2ba05923ceb4ab2aca57e8aa94c3',
+];
 const API_BASE = 'https://api.sportsrc.org/v2/';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 const TOKEN_SECRET = process.env.TOKEN_SECRET || 'token_secret_2026_football';
@@ -54,17 +57,40 @@ export default async function handler(req, res) {
             params.delete('token');
         }
 
-        params.set('api_key', API_KEY);
-        const url = API_BASE + '?' + params.toString();
+        params.delete('api_key');
 
-        const response = await fetch(url, {
-            headers: { 'User-Agent': UA, 'X-API-KEY': API_KEY }
-        });
-        const data = await response.text();
+        let lastError = null;
+        for (const apiKey of API_KEYS) {
+            try {
+                const p = new URLSearchParams(params.toString());
+                p.set('api_key', apiKey);
+                const url = API_BASE + '?' + p.toString();
 
+                const response = await fetch(url, {
+                    headers: { 'User-Agent': UA, 'X-API-KEY': apiKey }
+                });
+                const data = await response.text();
+
+                if (data && data.trim()) {
+                    try {
+                        const json = JSON.parse(data);
+                        if (json.error && (json.error.includes('limit') || json.error.includes('token') || json.error.includes('quota') || json.error.includes('rate'))) {
+                            lastError = json.error;
+                            continue;
+                        }
+                    } catch {}
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.setHeader('Content-Type', 'application/json');
+                    return res.status(200).send(data);
+                }
+                lastError = 'Empty response';
+            } catch (e) {
+                lastError = e.message;
+            }
+        }
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Content-Type', 'application/json');
-        res.status(200).send(data);
+        return res.status(429).json({ success: false, error: 'API keys အားလုံး limit ရောက်နေပါသည်။ ခဏခဏ ပြန်စမ်းကြည့်ပါ။', detail: lastError });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
