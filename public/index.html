@@ -20,6 +20,24 @@
 
         .container{max-width:1100px;margin:0 auto;padding:14px}
 
+        /* Search Bar */
+        .search-bar{position:relative;margin-bottom:10px}
+        .search-input{width:100%;padding:10px 14px 10px 36px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:13px;outline:none;transition:.3s}
+        .search-input:focus{border-color:#e94560;box-shadow:0 0 12px rgba(233,69,96,.15)}
+        .search-input::placeholder{color:#555}
+        .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;color:#555;pointer-events:none}
+        .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#555;font-size:16px;cursor:pointer;display:none;padding:4px}
+        .search-clear.show{display:block}
+
+        /* Status Filter Tabs */
+        .status-tabs{display:flex;gap:6px;margin-bottom:10px}
+        .status-tab{flex:1;padding:8px 12px;border-radius:8px;text-align:center;cursor:pointer;font-size:12px;font-weight:700;transition:.2s;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#888}
+        .status-tab:hover{background:rgba(255,255,255,.08);color:#ccc}
+        .status-tab.active-live{background:linear-gradient(135deg,#e94560,#c0392b);color:#fff;border-color:#e94560}
+        .status-tab.active-upcoming{background:linear-gradient(135deg,#2196f3,#1976d2);color:#fff;border-color:#2196f3}
+        .status-tab.active-all{background:linear-gradient(135deg,#ffa500,#e68a00);color:#fff;border-color:#ffa500}
+        .status-tab .badge{display:inline-block;background:rgba(0,0,0,.3);padding:1px 7px;border-radius:10px;font-size:10px;margin-left:4px}
+
         /* Match List */
         .section-title{font-size:12px;color:#888;margin-bottom:8px;padding:0 4px;display:flex;align-items:center;gap:6px}
         .match-list{display:flex;flex-direction:column;gap:8px}
@@ -118,6 +136,12 @@
 
 <div class="container">
     <div class="section-title">📋 ယနေ့ ပွဲစဉ်များ</div>
+    <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="search-input" placeholder="အသင်းအမည်၊ လိဂ် ရှာဖွေရန်..." oninput="onSearch()">
+        <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+    </div>
+    <div class="status-tabs" id="status-tabs"></div>
     <div class="league-tabs" id="league-tabs"></div>
     <div class="match-list" id="match-list"></div>
 </div>
@@ -352,6 +376,8 @@ async function preloadAndShowWall(id) {
 // === Matches ===
 let allLeagues = [];
 let activeLeague = 'all';
+let activeStatus = 'all'; // 'all', 'live', 'upcoming'
+let searchQuery = '';
 
 async function loadMatches() {
     const el = document.getElementById('match-list');
@@ -403,6 +429,7 @@ async function loadMatches() {
             return a.league.name.localeCompare(b.league.name);
         });
 
+        renderStatusTabs();
         renderLeagueTabs();
         renderMatchList();
     } catch(e) {
@@ -416,6 +443,57 @@ async function loadMatches() {
             '</div></div>';
         document.getElementById('league-tabs').innerHTML = '';
     }
+}
+
+// === Search & Status Filter ===
+function onSearch() {
+    const input = document.getElementById('search-input');
+    const clear = document.getElementById('search-clear');
+    searchQuery = input.value.trim().toLowerCase();
+    clear.classList.toggle('show', searchQuery.length > 0);
+    renderMatchList();
+}
+
+function clearSearch() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-clear').classList.remove('show');
+    searchQuery = '';
+    renderMatchList();
+}
+
+function setStatusFilter(status) {
+    activeStatus = status;
+    renderStatusTabs();
+    renderLeagueTabs();
+    renderMatchList();
+}
+
+function renderStatusTabs() {
+    const el = document.getElementById('status-tabs');
+    const allCount = allLeagues.reduce((s, l) => s + l.matches.length, 0);
+    const liveCount = allLeagues.reduce((s, l) => s + l.matches.filter(m => m.status === 'inprogress').length, 0);
+    const upcomingCount = allLeagues.reduce((s, l) => s + l.matches.filter(m => m.status !== 'inprogress' && m.status !== 'finished').length, 0);
+
+    el.innerHTML =
+        '<div class="status-tab ' + (activeStatus === 'all' ? 'active-all' : '') + '" onclick="setStatusFilter(\'all\')">📋 အားလုံး<span class="badge">' + allCount + '</span></div>' +
+        '<div class="status-tab ' + (activeStatus === 'live' ? 'active-live' : '') + '" onclick="setStatusFilter(\'live\')">🔴 ကစားနေ<span class="badge">' + liveCount + '</span></div>' +
+        '<div class="status-tab ' + (activeStatus === 'upcoming' ? 'active-upcoming' : '') + '" onclick="setStatusFilter(\'upcoming\')">⏰ မကစားရသေး<span class="badge">' + upcomingCount + '</span></div>';
+}
+
+function filterByStatus(matches) {
+    if (activeStatus === 'live') return matches.filter(m => m.status === 'inprogress');
+    if (activeStatus === 'upcoming') return matches.filter(m => m.status !== 'inprogress' && m.status !== 'finished');
+    return matches;
+}
+
+function filterBySearch(matches) {
+    if (!searchQuery) return matches;
+    return matches.filter(m => {
+        const q = searchQuery;
+        const home = (m.teams.home.name || '').toLowerCase();
+        const away = (m.teams.away.name || '').toLowerCase();
+        return home.includes(q) || away.includes(q);
+    });
 }
 
 function renderLeagueTabs() {
@@ -441,16 +519,23 @@ function renderMatchList() {
     let html = '';
 
     for (const lg of filtered) {
-        const hasLive = lg.matches.some(m => m.status === 'inprogress');
+        let matches = lg.matches;
+        // Apply status filter
+        matches = filterByStatus(matches);
+        // Apply search filter
+        matches = filterBySearch(matches);
+        if (!matches.length) continue;
+
+        const hasLive = matches.some(m => m.status === 'inprogress');
         const leagueId = lg.key.replace(/[^a-zA-Z0-9]/g, '_');
 
         if (activeLeague === 'all') {
-            html += '<div class="league-group"><div class="league-group-header" onclick="toggleLeague(\'' + leagueId + '\')"><img src="' + (lg.league.flag || lg.league.logo) + '"><span class="lg-name">' + lg.league.name + '</span><span class="lg-country">' + lg.league.country + '</span>' + (hasLive ? '<span class="lg-count">● LIVE</span>' : '') + '<span class="lg-count">' + lg.matches.length + ' ပွဲ</span><span class="lg-toggle" id="toggle-' + leagueId + '">▼</span></div><div class="league-group-body" id="body-' + leagueId + '">';
+            html += '<div class="league-group"><div class="league-group-header" onclick="toggleLeague(\'' + leagueId + '\')"><img src="' + (lg.league.flag || lg.league.logo) + '"><span class="lg-name">' + lg.league.name + '</span><span class="lg-country">' + lg.league.country + '</span>' + (hasLive ? '<span class="lg-count">● LIVE</span>' : '') + '<span class="lg-count">' + matches.length + ' ပွဲ</span><span class="lg-toggle" id="toggle-' + leagueId + '">▼</span></div><div class="league-group-body" id="body-' + leagueId + '">';
         } else {
             html += '<div class="league-group"><div class="league-group-body">';
         }
 
-        for (const m of lg.matches) {
+        for (const m of matches) {
             const sc = m.status === 'inprogress' ? 'st-live' : m.status === 'finished' ? 'st-ft' : 'st-up';
             const st = getStatus(m.status, m.status_detail);
             html += '<div class="match-card" onclick="showMatch(\'' + m.id + '\')"><div class="card-teams"><div class="card-team"><img src="' + m.teams.home.badge + '"><span>' + m.teams.home.name + '</span></div><div class="card-score">' + (m.score.display || 'VS') + '</div><div class="card-team" style="flex-direction:row-reverse"><img src="' + m.teams.away.badge + '"><span>' + m.teams.away.name + '</span></div></div><div class="card-meta"><span>' + lg.league.name + ' • ' + lg.league.country + '</span><span class="status ' + sc + '" style="font-size:9px">' + st + '</span></div></div>';
@@ -459,7 +544,7 @@ function renderMatchList() {
         html += '</div></div>';
     }
 
-    el.innerHTML = html || '<div class="loading">ပွဲစဉ်မတွေ့ရှိပါ</div>';
+    el.innerHTML = html || '<div class="loading">' + (searchQuery ? '🔍 "' + searchQuery + '" ရှာဖွေတာ တွေ့ရှိမှုမရှိပါ' : 'ပွဲစဉ်မတွေ့ရှိပါ') + '</div>';
 }
 
 function toggleLeague(id) {
