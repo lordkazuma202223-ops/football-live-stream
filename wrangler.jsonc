@@ -8,5 +8,6 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
-  ]
+  ],
+  "serve_directly": false
 }

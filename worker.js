@@ -463,11 +463,13 @@ export default {
         const path = url.pathname;
         const context = { request, env, ctx };
 
+        // API routes - handled by worker
         if (path === '/api/matches') return handleMatches(context);
         if (path === '/api/code') return handleCode(context);
         if (path === '/api/stream') return handleStream(context);
         if (path === '/api/proxy') return handleProxy(context);
 
-        return new Response('Not Found', { status: 404 });
+        // Everything else - serve static assets
+        return env.ASSETS.fetch(request);
     }
 };
