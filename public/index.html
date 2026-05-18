@@ -357,14 +357,25 @@ async function loadMatches() {
     const el = document.getElementById('match-list');
     el.innerHTML = '<div class="loading"><div class="spinner" style="margin:0 auto 8px"></div>ရှာဖွေနေသည်...</div>';
     try {
-        const today = new Date().toISOString().split('T')[0];
-        const [live, upcoming] = await Promise.all([
-            api({type:'matches', sport:'football', status:'inprogress'}),
-            api({type:'matches', sport:'football', status:'upcoming', date:today})
+        // Fetch all matches + live (some APIs return 0 for 'upcoming' status)
+        const [allResp, liveResp] = await Promise.all([
+            api({type:'matches', sport:'football'}),
+            api({type:'matches', sport:'football', status:'inprogress'})
         ]);
         const raw = [];
-        if (live.success && Array.isArray(live.data)) raw.push(...live.data);
-        if (upcoming.success && Array.isArray(upcoming.data)) raw.push(...upcoming.data);
+        if (allResp.success && Array.isArray(allResp.data)) raw.push(...allResp.data);
+        if (liveResp.success && Array.isArray(liveResp.data)) {
+            // Merge live data (prefer live data over all data for live matches)
+            const liveKeys = new Set();
+            for (const lg of liveResp.data) {
+                for (const m of lg.matches) liveKeys.add(m.id);
+            }
+            // Remove duplicates from allResp that are already in liveResp
+            for (const lg of raw) {
+                lg.matches = lg.matches.filter(m => !liveKeys.has(m.id));
+            }
+            raw.push(...liveResp.data);
+        }
 
         if (!raw.length) {
             el.innerHTML = '<div class="loading">ပွဲစဉ်မတွေ့ရှိပါ</div>';
