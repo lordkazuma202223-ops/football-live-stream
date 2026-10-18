@@ -35,29 +35,8 @@ function verifyToken(tokenStr) {
 export default async function handler(req, res) {
     try {
         const params = new URLSearchParams(req.query);
-        const type = params.get('type');
-
-        // Gate: detail endpoint requires valid token
-        if (type === 'detail') {
-            const token = params.get('token');
-            if (!token) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'Token required. Enter a code on the home page first.'
-                });
-            }
-            const payload = verifyToken(token);
-            if (!payload) {
-                return res.status(403).json({
-                    success: false,
-                    error: 'Invalid or expired token. Please re-enter your code.'
-                });
-            }
-            // Token valid — remove from params before forwarding to API
-            params.delete('token');
-        }
-
         params.delete('api_key');
+        params.delete('token');
 
         let lastError = null;
         for (const apiKey of API_KEYS) {

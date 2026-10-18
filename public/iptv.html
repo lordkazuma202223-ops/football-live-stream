@@ -16,7 +16,7 @@
 <header class="header">
     <div class="header-left">
         <a class="brand" href="index.html">
-            <span class="brand-mark">⚽</span>
+            <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m12 8 3 2.2-1.1 3.4h-3.8L9 10.2 12 8Z"/><path d="M12 3v3.1M4.9 9.9l3.2-.1M19.1 9.9l-3.2-.1M7.7 18.3l1.8-2.6M16.3 18.3l-1.8-2.6"/></svg></span>
             <span class="brand-name">ဘစ်ကြီး</span>
         </a>
         <nav class="nav">
@@ -39,7 +39,7 @@
 
 <main class="container">
     <div class="page-head">
-        <h1 class="page-title">📺 မြန်မာ တီဗီ ချန်နယ်များ</h1>
+        <h1 class="page-title"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg>မြန်မာ တီဗီ ချန်နယ်များ</h1>
         <p class="page-sub" id="iptv-sub">အခမဲ့ ထုတ်လွှင့်နေသော ချန်နယ်များကို တိုက်ရိုက် ကြည့်ရှုပါ</p>
     </div>
 
@@ -47,7 +47,7 @@
         <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             <input type="text" class="search-input" id="search-input" placeholder="ချန်နယ် ရှာဖွေရန်..." oninput="onSearch()" autocomplete="off">
-            <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="clear">✕</button>
+            <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="clear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         <div class="chip-row" id="group-tabs"></div>
     </div>
@@ -65,7 +65,7 @@
 <!-- IPTV player modal -->
 <div class="overlay" id="player-overlay">
     <div class="modal iptv-modal">
-        <button class="modal-close" onclick="closePlayer()" aria-label="close">✕</button>
+        <button class="modal-close" onclick="closePlayer()" aria-label="close"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         <div class="player-box">
             <video id="iptv-video" controls playsinline autoplay></video>
             <div class="player-loading active" id="iptv-loading"><div class="spinner lg"></div><span id="iptv-loading-txt">ချိတ်ဆက်နေသည်...</span></div>
@@ -89,6 +89,13 @@ let groups = [];
 let activeGroup = 'all';
 let searchQuery = '';
 let hls = null;
+
+const ICON = {
+    tv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>',
+    broadcast: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1a10 10 0 0 1 0-14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4M19.1 4.9a10 10 0 0 1 0 14.2"/><circle cx="12" cy="12" r="1.6"/></svg>'
+};
 
 function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -138,7 +145,7 @@ async function loadChannels(force) {
     }
 
     if (!data || !data.channels.length) {
-        grid.innerHTML = '<div class="state" style="grid-column:1/-1"><div class="state-icon">📡</div><div class="state-title">ချန်နယ်များ ရယူ၍ မရပါ</div><div class="state-msg">ဆာဗာနှင့် ချိတ်ဆက်မှု ပြဿနာ သို့မဟုတ် playlist မရနိုင်ပါ။ ပြန်စမ်းကြည့်ပါ။</div><button class="btn btn-primary" onclick="loadChannels(true)">🔄 ပြန်စမ်းကြည့်ပါ</button></div>';
+        grid.innerHTML = '<div class="state" style="grid-column:1/-1"><div class="state-icon">' + ICON.broadcast + '</div><div class="state-title">ချန်နယ်များ ရယူ၍ မရပါ</div><div class="state-msg">ဆာဗာနှင့် ချိတ်ဆက်မှု ပြဿနာ သို့မဟုတ် playlist မရနိုင်ပါ။ ပြန်စမ်းကြည့်ပါ။</div><button class="btn btn-primary" onclick="loadChannels(true)">' + ICON.refresh + ' ပြန်စမ်းကြည့်ပါ</button></div>';
         return;
     }
 
@@ -165,7 +172,7 @@ function clearSearch() {
 
 function renderGroupTabs() {
     const el = document.getElementById('group-tabs');
-    let html = '<button class="chip ' + (activeGroup === 'all' ? 'active' : '') + '" onclick="setGroup(\'all\')">📺 အားလုံး <span class="count">' + allChannels.length + '</span></button>';
+    let html = '<button class="chip ' + (activeGroup === 'all' ? 'active' : '') + '" onclick="setGroup(\'all\')">' + ICON.tv + ' အားလုံး <span class="count">' + allChannels.length + '</span></button>';
     for (const g of groups) {
         const n = allChannels.filter(c => c.group === g).length;
         html += '<button class="chip ' + (activeGroup === g ? 'active' : '') + '" onclick="setGroup(\'' + esc(g).replace(/'/g, "\\'") + '\')">' + esc(g) + ' <span class="count">' + n + '</span></button>';
@@ -180,12 +187,15 @@ function renderGrid() {
     if (activeGroup !== 'all') list = list.filter(c => c.group === activeGroup);
     if (searchQuery) list = list.filter(c => (c.name || '').toLowerCase().includes(searchQuery));
     if (!list.length) {
-        grid.innerHTML = '<div class="state" style="grid-column:1/-1"><div class="state-icon">🔍</div><div class="state-title">' + (searchQuery ? 'ရှာဖွေတာ တွေ့ရှိမှုမရှိပါ' : 'ချန်နယ် မတွေ့ရှိပါ') + '</div></div>';
+        grid.innerHTML = '<div class="state" style="grid-column:1/-1"><div class="state-icon">' + ICON.search + '</div><div class="state-title">' + (searchQuery ? 'ရှာဖွေတာ တွေ့ရှိမှုမရှိပါ' : 'ချန်နယ် မတွေ့ရှိပါ') + '</div></div>';
         return;
     }
     grid.innerHTML = list.map((c, i) => {
-        const logo = c.logo ? '<img src="' + esc(c.logo) + '" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\'<span class=fallback>📺</span>\'">' : '<span class="fallback">📺</span>';
-        return '<button class="channel-card" onclick="playChannel(' + allChannels.indexOf(c) + ')">' +
+        const logo = c.logo
+            ? '<img src="' + esc(c.logo) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="fallback" style="display:none">' + ICON.tv + '</span>'
+            : '<span class="fallback">' + ICON.tv + '</span>';
+        const delay = Math.min(i * 22, 350);
+        return '<button class="channel-card" style="--d:' + delay + 'ms" onclick="playChannel(' + allChannels.indexOf(c) + ')">' +
             '<span class="channel-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>' +
             '<span class="channel-logo">' + logo + '</span>' +
             '<span class="channel-name">' + esc(c.name) + '</span>' +
@@ -232,7 +242,7 @@ function loadStream(c) {
     const url = c.url;
     if (location.protocol === 'https:' && url.startsWith('http:')) {
         document.getElementById('iptv-loading').classList.remove('active');
-        showIptvStatus('⚠️ HTTP stream — HTTPS စာမျက်နှာတွင် မဖွင့်နိုင်ပါ', 'err');
+        showIptvStatus('HTTP stream — HTTPS စာမျက်နှာတွင် မဖွင့်နိုင်ပါ', 'err');
         return;
     }
 
@@ -250,17 +260,17 @@ function loadStream(c) {
                 else {
                     hls.destroy(); hls = null;
                     done();
-                    showIptvStatus('❌ Channel ဖွင့်၍ မရပါ (offline ဖြစ်နိုင်သည်)', 'err');
+                    showIptvStatus('Channel ဖွင့်၍ မရပါ (offline ဖြစ်နိုင်သည်)', 'err');
                 }
             }
         });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
         video.addEventListener('loadedmetadata', () => { done(); video.play().catch(() => {}); }, { once: true });
-        video.addEventListener('error', () => { done(); showIptvStatus('❌ Channel ဖွင့်၍ မရပါ', 'err'); }, { once: true });
+        video.addEventListener('error', () => { done(); showIptvStatus('Channel ဖွင့်၍ မရပါ', 'err'); }, { once: true });
     } else {
         done();
-        showIptvStatus('❌ ဤ browser သည် HLS မပံ့ပိုးပါ', 'err');
+        showIptvStatus('ဤ browser သည် HLS မပံ့ပိုးပါ', 'err');
     }
 }
 

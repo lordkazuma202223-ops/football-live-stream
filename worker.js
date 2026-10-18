@@ -48,19 +48,8 @@ async function handleMatches(context) {
         return new Response(null, { status: 200, headers: corsHeaders });
     }
 
-    if (type === 'detail') {
-        const token = params.get('token');
-        if (!token) {
-            return Response.json({ success: false, error: 'Token required.' }, { status: 403, headers: corsHeaders });
-        }
-        const payload = await verifyToken(token);
-        if (!payload) {
-            return Response.json({ success: false, error: 'Invalid or expired token.' }, { status: 403, headers: corsHeaders });
-        }
-        params.delete('token');
-    }
-
     params.delete('api_key');
+    params.delete('token');
     const corsAndJson = { ...corsHeaders, 'Content-Type': 'application/json' };
 
     let lastError = null;

@@ -54,18 +54,7 @@ export async function onRequest(context) {
         return new Response(null, { status: 200, headers: corsHeaders });
     }
 
-    // Token gate for detail requests
-    if (type === 'detail') {
-        const token = params.get('token');
-        if (!token) {
-            return Response.json({ success: false, error: 'Token required.' }, { status: 403, headers: corsHeaders });
-        }
-        const payload = await verifyToken(token);
-        if (!payload) {
-            return Response.json({ success: false, error: 'Invalid or expired token.' }, { status: 403, headers: corsHeaders });
-        }
-        params.delete('token');
-    }
+    params.delete('token');
 
     // --- Cache Layer ---
     const cacheKey = new Request(url.toString(), { method: 'GET' });

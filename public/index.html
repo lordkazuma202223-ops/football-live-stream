@@ -15,7 +15,7 @@
 <header class="header">
     <div class="header-left">
         <a class="brand" href="index.html">
-            <span class="brand-mark">⚽</span>
+            <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m12 8 3 2.2-1.1 3.4h-3.8L9 10.2 12 8Z"/><path d="M12 3v3.1M4.9 9.9l3.2-.1M19.1 9.9l-3.2-.1M7.7 18.3l1.8-2.6M16.3 18.3l-1.8-2.6"/></svg></span>
             <span class="brand-name">ဘစ်ကြီး</span>
         </a>
         <nav class="nav">
@@ -39,7 +39,7 @@
 
 <main class="container">
     <div class="page-head">
-        <h1 class="page-title">⚽ ယနေ့ ဘောလုံးပွဲစဉ်များ</h1>
+        <h1 class="page-title"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><circle cx="12" cy="12" r="9"/><path d="m12 8 3 2.2-1.1 3.4h-3.8L9 10.2 12 8Z"/></svg>ယနေ့ ဘောလုံးပွဲစဉ်များ</h1>
         <p class="page-sub">တိုက်ရိုက်နှင့် လာမည့်ပွဲစဉ်များကို အချိန်နှင့်တပြေးညီ ကြည့်ရှုပါ</p>
     </div>
 
@@ -47,7 +47,7 @@
         <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             <input type="text" class="search-input" id="search-input" placeholder="အသင်းအမည် / လိဂ် ရှာဖွေရန်..." oninput="onSearch()" autocomplete="off">
-            <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="clear">✕</button>
+            <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="clear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </div>
         <div class="status-tabs" id="status-tabs"></div>
         <div class="chip-row" id="league-tabs"></div>
@@ -61,36 +61,21 @@
     <span>ဆက်သွယ်ရန် <a href="https://t.me/yourchannel" target="_blank" rel="noopener">Telegram</a></span>
 </footer>
 
-<!-- Code Wall overlay -->
-<div class="overlay" id="code-wall">
-    <div class="modal code-wall-modal">
-        <button class="modal-close" onclick="closeCodeWall()" aria-label="close">✕</button>
-        <span class="cw-lock">🔒</span>
-        <div class="cw-title">CODE WALL</div>
-        <div class="cw-match-preview" id="cw-preview" style="display:none">
-            <div class="teams" id="cw-teams"></div>
-            <div class="league" id="cw-league"></div>
-        </div>
-        <div class="cw-subtitle">ပွဲစဉ်ကြည့်ရန် ကုဒ်နံပါတ် ထည့်ပါ</div>
-        <input type="text" class="cw-input" id="cw-input" placeholder="ကုဒ်နံပါတ် ထည့်ပါ..." maxlength="20" autocomplete="off">
-        <div id="cw-message"></div>
-        <button class="cw-btn" id="cw-submit" onclick="submitCode()">ကုဒ်စစ်ဆေးပါ</button>
-        <div class="cw-divider">သို့မဟုတ်</div>
-        <button class="cw-alt-btn" id="cw-gen-btn" onclick="generateKey()">🔑 ကုဒ် အခမဲ့ရယူ</button>
-        <div class="cw-gen-result" id="cw-gen-result">
-            <div class="lbl">ကုဒ်ကို ကူးယူပြီး အပေါ်က ထည့်ပါ</div>
-            <div class="code" id="cw-gen-code"></div>
-        </div>
-        <a class="cw-alt-btn premium" href="https://t.me/yourchannel" target="_blank" rel="noopener">🛡️ Premium ဝယ်ယူ (30 ရက်)</a>
-        <div class="cw-footer">💬 Telegram: <a href="https://t.me/yourchannel" target="_blank" rel="noopener">@yourchannel</a></div>
-    </div>
-</div>
-
 <script>
 const API_PROXY = '/api/matches';
-const CODE_API = '/api/code';
-let pendingMatchId = null;
 let forceCacheBust = false;
+
+const ICON = {
+    ball: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m12 8 3 2.2-1.1 3.4h-3.8L9 10.2 12 8Z"/></svg>',
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+    live: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>',
+    inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.5A2 2 0 0 0 17 4H7a2 2 0 0 0-1.5 1.5z"/></svg>',
+    warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'
+};
 
 const statusMap = {
     'inprogress': 'ကစားနေသည်',
@@ -125,131 +110,9 @@ async function api(params) {
     catch (e) { throw new Error('API မှ မမှန်ကန်သော ဒေတာ ရရှိနေသည်။'); }
 }
 
-// === Code Wall ===
-function getStoredCode() {
-    try {
-        const data = localStorage.getItem('cw_code');
-        if (!data) return null;
-        const parsed = JSON.parse(data);
-        if (parsed.expiresAt && Date.now() < new Date(parsed.expiresAt).getTime()) return parsed;
-        localStorage.removeItem('cw_code');
-        return null;
-    } catch { return null; }
-}
-
-function showCodeWall(matchId, matchData) {
-    pendingMatchId = matchId;
-    document.getElementById('code-wall').classList.add('active');
-    document.getElementById('cw-message').innerHTML = '';
-    document.getElementById('cw-input').value = '';
-    if (matchData) {
-        document.getElementById('cw-preview').style.display = 'block';
-        document.getElementById('cw-teams').textContent = matchData.teams.home.name + ' vs ' + matchData.teams.away.name;
-        document.getElementById('cw-league').textContent = matchData.league.name + ' • ' + matchData.league.country;
-    }
-    setTimeout(() => document.getElementById('cw-input').focus(), 100);
-}
-
-function closeCodeWall() {
-    document.getElementById('code-wall').classList.remove('active');
-    pendingMatchId = null;
-}
-
-async function generateKey() {
-    const btn = document.getElementById('cw-gen-btn');
-    const result = document.getElementById('cw-gen-result');
-    const codeEl = document.getElementById('cw-gen-code');
-    btn.disabled = true;
-    btn.textContent = '⏳ ရယူနေသည်...';
-    try {
-        const resp = await fetch(CODE_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', type: 'free', secret: 'kazuma2026' }) });
-        const data = await resp.json();
-        if (data.success && data.code) {
-            codeEl.textContent = data.code;
-            result.style.display = 'block';
-            btn.textContent = '✅ ရယူပြီး';
-        } else {
-            btn.textContent = '❌ မရသေးပါ';
-            setTimeout(() => { btn.textContent = '🔑 ကုဒ် အခမဲ့ရယူ'; btn.disabled = false; }, 2000);
-        }
-    } catch (e) {
-        btn.textContent = '❌ ဆက်သွယ်မှု အမှား';
-        setTimeout(() => { btn.textContent = '🔑 ကုဒ် အခမဲ့ရယူ'; btn.disabled = false; }, 2000);
-    }
-}
-
-async function submitCode() {
-    const input = document.getElementById('cw-input');
-    const code = input.value.trim();
-    const msgEl = document.getElementById('cw-message');
-    const btn = document.getElementById('cw-submit');
-    if (!code) {
-        msgEl.innerHTML = '<div class="cw-error">⚠️ ကုဒ်နံပါတ် ထည့်ပါ</div>';
-        input.classList.add('cw-shake');
-        setTimeout(() => input.classList.remove('cw-shake'), 500);
-        return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'စစ်ဆေးနေသည်...';
-    msgEl.innerHTML = '';
-    try {
-        const resp = await fetch(CODE_API + '?action=validate&code=' + encodeURIComponent(code));
-        const data = await resp.json();
-        if (data.valid) {
-            setStoredCode(code, data.type, data.expiresAt);
-            msgEl.innerHTML = '<div class="cw-success">✅ ကုဒ်မှန်ကန်ပါတယ်! Player သို့ ပို့နေသည်...</div>';
-            setTimeout(() => {
-                window.location.href = 'player.html?id=' + encodeURIComponent(pendingMatchId) + '&token=' + encodeURIComponent(data.token);
-            }, 800);
-        } else {
-            msgEl.innerHTML = '<div class="cw-error">❌ ကုဒ်မမှန်ကန်ပါ။ ထပ်စမ်းကြည့်ပါ။</div>';
-            input.classList.add('cw-shake');
-            setTimeout(() => input.classList.remove('cw-shake'), 500);
-            input.value = '';
-            input.focus();
-        }
-    } catch (e) {
-        msgEl.innerHTML = '<div class="cw-error">❌ ဆက်သွယ်မှု အမှားရှိနေသည်။</div>';
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'ကုဒ်စစ်ဆေးပါ';
-    }
-}
-
-function setStoredCode(code, type, expiresAt) {
-    localStorage.setItem('cw_code', JSON.stringify({ code, type, expiresAt }));
-}
-
-document.getElementById('cw-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitCode(); });
-
-// === Match Click ===
+// === Match open ===
 function showMatch(id) {
-    const stored = getStoredCode();
-    if (stored) {
-        fetch(CODE_API + '?action=validate&code=' + encodeURIComponent(stored.code))
-            .then(r => r.json())
-            .then(data => {
-                if (data.valid) {
-                    window.location.href = 'player.html?id=' + encodeURIComponent(id) + '&token=' + encodeURIComponent(data.token);
-                } else {
-                    localStorage.removeItem('cw_code');
-                    preloadAndShowWall(id);
-                }
-            })
-            .catch(() => { window.location.href = 'player.html?id=' + encodeURIComponent(id); });
-        return;
-    }
-    preloadAndShowWall(id);
-}
-
-async function preloadAndShowWall(id) {
-    try {
-        const detail = await api({ type: 'detail', id });
-        if (detail.success && detail.data && detail.data.match_info) showCodeWall(id, detail.data.match_info);
-        else showCodeWall(id, null);
-    } catch (e) {
-        showCodeWall(id, null);
-    }
+    window.location.href = 'player.html?id=' + encodeURIComponent(id);
 }
 
 // === Matches ===
@@ -280,7 +143,7 @@ async function loadMatches() {
             raw.push(...liveResp.data);
         }
         if (!raw.length) {
-            el.innerHTML = '<div class="state"><div class="state-icon">📭</div><div class="state-title">ပွဲစဉ် မတွေ့ရှိပါ</div></div>';
+            el.innerHTML = '<div class="state"><div class="state-icon">' + ICON.inbox + '</div><div class="state-title">ပွဲစဉ် မတွေ့ရှိပါ</div></div>';
             document.getElementById('league-tabs').innerHTML = '';
             document.getElementById('status-tabs').innerHTML = '';
             return;
@@ -307,7 +170,7 @@ async function loadMatches() {
         renderLeagueTabs();
         renderMatchList();
     } catch (e) {
-        el.innerHTML = '<div class="state"><div class="state-icon">⚠️</div><div class="state-title" style="color:var(--live)">ဒေတာ ရယူ၍ မရပါ</div><div class="state-msg">' + esc(e.message || 'အမည်မသိ အမှားပြ') + '</div><button class="btn btn-primary" onclick="loadMatches()">🔄 ပြန်စမ်းကြည့်ပါ</button></div>';
+        el.innerHTML = '<div class="state"><div class="state-icon" style="color:var(--live)">' + ICON.warn + '</div><div class="state-title" style="color:var(--live)">ဒေတာ ရယူ၍ မရပါ</div><div class="state-msg">' + esc(e.message || 'အမည်မသိ အမှားပြ') + '</div><button class="btn btn-primary" onclick="loadMatches()">' + ICON.refresh + ' ပြန်စမ်းကြည့်ပါ</button></div>';
         document.getElementById('league-tabs').innerHTML = '';
         document.getElementById('status-tabs').innerHTML = '';
     }
@@ -343,9 +206,9 @@ function renderStatusTabs() {
     const liveCount = allLeagues.reduce((s, l) => s + l.matches.filter(m => m.status === 'inprogress').length, 0);
     const upcomingCount = allLeagues.reduce((s, l) => s + l.matches.filter(m => m.status !== 'inprogress' && m.status !== 'finished').length, 0);
     el.innerHTML =
-        '<div class="status-tab ' + (activeStatus === 'all' ? 'active-all' : '') + '" onclick="setStatusFilter(\'all\')">📋 <span class="lbl">အားလုံး</span><span class="badge">' + allCount + '</span></div>' +
-        '<div class="status-tab ' + (activeStatus === 'live' ? 'active-live' : '') + '" onclick="setStatusFilter(\'live\')">🔴 <span class="lbl">ကစားနေ</span><span class="badge">' + liveCount + '</span></div>' +
-        '<div class="status-tab ' + (activeStatus === 'upcoming' ? 'active-upcoming' : '') + '" onclick="setStatusFilter(\'upcoming\')">⏰ <span class="lbl">မကစားရသေး</span><span class="badge">' + upcomingCount + '</span></div>';
+        '<div class="status-tab ' + (activeStatus === 'all' ? 'active-all' : '') + '" onclick="setStatusFilter(\'all\')">' + ICON.list + '<span class="lbl">အားလုံး</span><span class="badge">' + allCount + '</span></div>' +
+        '<div class="status-tab ' + (activeStatus === 'live' ? 'active-live' : '') + '" onclick="setStatusFilter(\'live\')">' + ICON.live + '<span class="lbl">ကစားနေ</span><span class="badge">' + liveCount + '</span></div>' +
+        '<div class="status-tab ' + (activeStatus === 'upcoming' ? 'active-upcoming' : '') + '" onclick="setStatusFilter(\'upcoming\')">' + ICON.clock + '<span class="lbl">မကစားရသေး</span><span class="badge">' + upcomingCount + '</span></div>';
 }
 
 function filterByStatus(matches) {
@@ -367,11 +230,11 @@ function renderLeagueTabs() {
         lg._filteredCount = m.length;
         totalFiltered += m.length;
     }
-    let html = '<button class="chip ' + (activeLeague === 'all' ? 'active' : '') + '" onclick="filterLeague(\'all\')">⚽ အားလုံး <span class="count">' + totalFiltered + '</span></button>';
+    let html = '<button class="chip ' + (activeLeague === 'all' ? 'active' : '') + '" onclick="filterLeague(\'all\')">' + ICON.ball + ' အားလုံး <span class="count">' + totalFiltered + '</span></button>';
     for (const lg of allLeagues) {
         if (lg._filteredCount === 0) continue;
         const liveCount = lg.matches.filter(m => m.status === 'inprogress').length;
-        html += '<button class="chip ' + (activeLeague === lg.key ? 'active' : '') + '" onclick="filterLeague(\'' + esc(lg.key).replace(/'/g, "\\'") + '\')"><img src="' + esc(lg.league.flag || lg.league.logo) + '" alt="" onerror="this.style.display=\'none\'">' + (liveCount > 0 ? '🔴 ' : '') + esc(lg.league.name) + ' <span class="count">' + lg._filteredCount + '</span></button>';
+        html += '<button class="chip ' + (activeLeague === lg.key ? 'active' : '') + '" onclick="filterLeague(\'' + esc(lg.key).replace(/'/g, "\\'") + '\')"><img src="' + esc(lg.league.flag || lg.league.logo) + '" alt="" onerror="this.style.display=\'none\'">' + (liveCount > 0 ? '<span class="live-mini"></span>' : '') + esc(lg.league.name) + ' <span class="count">' + lg._filteredCount + '</span></button>';
     }
     tabs.innerHTML = html;
 }
@@ -397,16 +260,18 @@ function renderMatchList() {
                 '<span class="lg-name">' + esc(lg.league.name) + '</span>' +
                 '<span class="lg-country">' + esc(lg.league.country) + '</span>' +
                 '<span class="lg-spacer"></span>' +
-                (hasLive ? '<span class="lg-count live">● LIVE</span>' : '') +
+                (hasLive ? '<span class="lg-count live"><span class="live-mini"></span>LIVE</span>' : '') +
                 '<span class="lg-count">' + matches.length + ' ပွဲ</span>' +
-                '<span class="lg-toggle" id="toggle-' + leagueId + '">▼</span></div><div class="league-group-body" id="body-' + leagueId + '">';
+                '<span class="lg-toggle" id="toggle-' + leagueId + '">' + ICON.chevron + '</span></div><div class="league-group-body" id="body-' + leagueId + '">';
         } else {
             html += '<div class="league-group"><div class="league-group-body">';
         }
+        let ci = 0;
         for (const m of matches) {
             const sc = m.status === 'inprogress' ? 'st-live' : m.status === 'finished' ? 'st-ft' : 'st-up';
             const st = getStatus(m.status, m.status_detail);
-            html += '<div class="match-card" onclick="showMatch(\'' + esc(m.id) + '\')">' +
+            const delay = Math.min(ci++ * 30, 300);
+            html += '<div class="match-card" style="--d:' + delay + 'ms" onclick="showMatch(\'' + esc(m.id) + '\')">' +
                 '<div class="card-teams">' +
                 '<div class="card-team"><img src="' + esc(m.teams.home.badge) + '" alt="" onerror="this.style.visibility=\'hidden\'"><span>' + esc(m.teams.home.name) + '</span></div>' +
                 '<div class="card-score">' + esc(m.score.display || 'VS') + '</div>' +
@@ -417,7 +282,7 @@ function renderMatchList() {
         }
         html += '</div></div>';
     }
-    el.innerHTML = html || '<div class="state"><div class="state-icon">🔍</div><div class="state-title">' + (searchQuery ? 'ရှာဖွေတာ တွေ့ရှိမှုမရှိပါ' : 'ပွဲစဉ်မတွေ့ရှိပါ') + '</div></div>';
+    el.innerHTML = html || '<div class="state"><div class="state-icon">' + ICON.search + '</div><div class="state-title">' + (searchQuery ? 'ရှာဖွေတာ တွေ့ရှိမှုမရှိပါ' : 'ပွဲစဉ်မတွေ့ရှိပါ') + '</div></div>';
 }
 
 function toggleLeague(id) {
