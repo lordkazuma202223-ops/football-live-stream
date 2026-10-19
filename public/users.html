@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0d13">
+    <title>အသုံးပြုသူများ — ဘစ်ကြီး</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+
+<header class="header">
+    <div class="header-left">
+        <a class="brand" href="index.html">
+            <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m12 8 3 2.2-1.1 3.4h-3.8L9 10.2 12 8Z"/><path d="M12 3v3.1M4.9 9.9l3.2-.1M19.1 9.9l-3.2-.1M7.7 18.3l1.8-2.6M16.3 18.3l-1.8-2.6"/></svg></span>
+            <span class="brand-name">ဘစ်ကြီး</span>
+        </a>
+        <nav class="nav">
+            <a class="nav-link" href="index.html">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z"/><path d="m12 7 3 2-1 3h-4L9 9l3-2Z"/></svg>
+                <span>ပွဲစဉ်များ</span>
+            </a>
+            <a class="nav-link" href="iptv.html">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg>
+                <span>တီဗီ</span>
+            </a>
+            <a class="nav-link active" href="users.html">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>အသုံးပြုသူများ</span>
+            </a>
+        </nav>
+    </div>
+    <div class="header-right">
+        <button class="btn btn-icon" onclick="load()" title="ပြန်လည်ရယူ" aria-label="refresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+        </button>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-head">
+        <h1 class="page-title"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>အသုံးပြုသူများ</h1>
+        <p class="page-sub" id="users-sub">ဒီဆိုက်ကို အသုံးပြုခဲ့သူများ၏ စာရင်း</p>
+    </div>
+
+    <div id="users-list">
+        <div class="loading"><div class="spinner"></div><span>မှတ်တမ်းများ ရယူနေသည်...</span></div>
+    </div>
+</main>
+
+<footer class="footer">
+    <span>© 2026 ဘစ်ကြီး — ဘောလုံး တိုက်ရိုက်ကြည့်ရန်</span>
+    <span>ဆက်သွယ်ရန် <a href="https://t.me/yourchannel" target="_blank" rel="noopener">Telegram</a></span>
+</footer>
+
+<script src="config.js"></script>
+<script src="visitors.js"></script>
+<script>
+const wrap = document.getElementById('users-list');
+
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function initials(name) {
+    const p = String(name || '?').trim().split(/\s+/);
+    return ((p[0] || '?').charAt(0) + (p.length > 1 ? p[1].charAt(0) : '')).toUpperCase();
+}
+
+function timeAgo(iso) {
+    const t = new Date(iso).getTime();
+    if (!t) return '';
+    const s = Math.floor((Date.now() - t) / 1000);
+    if (s < 45) return 'ယခုလေးတင်';
+    if (s < 3600) return Math.floor(s / 60) + ' မိနစ်က';
+    if (s < 86400) return Math.floor(s / 3600) + ' နာရီက';
+    if (s < 604800) return Math.floor(s / 86400) + ' ရက်က';
+    return new Date(t).toLocaleDateString();
+}
+
+function fullTime(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleString();
+}
+
+function state(icon, title, msg) {
+    wrap.innerHTML = '<div class="state"><div class="state-icon">' + icon + '</div><div class="state-title">' + title + '</div><div class="state-msg">' + msg + '</div></div>';
+}
+
+async function load() {
+    if (!window.BZVisitors || !window.BZVisitors.configured()) {
+        state('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+            'Supabase မချိတ်ဆက်ရသေးပါ', 'config.js ထဲတွင် Supabase Project URL နှင့် anon key ထည့်ပါ။');
+        return;
+    }
+    wrap.innerHTML = '<div class="loading"><div class="spinner"></div><span>မှတ်တမ်းများ ရယူနေသည်...</span></div>';
+    try {
+        const rows = await window.BZVisitors.list(300);
+        if (!rows.length) {
+            state('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+                'မှတ်တမ်း မရှိသေးပါ', 'ပထမဆုံး အသုံးပြုသူ ဖြစ်ပါသည်။');
+            return;
+        }
+        const sub = document.getElementById('users-sub');
+        if (sub) sub.textContent = 'စုစုပေါင်း ' + rows.length + ' မှတ်တမ်း';
+        wrap.innerHTML = '<div class="user-list">' + rows.map((r, i) =>
+            '<div class="user-row" style="--d:' + Math.min(i * 25, 500) + 'ms">' +
+                '<div class="user-avatar-lg">' + esc(initials(r.name)) + '</div>' +
+                '<div class="user-main">' +
+                    '<div class="user-name">' + esc(r.name) + '</div>' +
+                    '<div class="user-device">' +
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>' +
+                        esc(r.device || 'Unknown') +
+                    '</div>' +
+                '</div>' +
+                '<div class="user-time" title="' + esc(fullTime(r.created_at)) + '">' + esc(timeAgo(r.created_at)) + '</div>' +
+            '</div>'
+        ).join('') + '</div>';
+    } catch (e) {
+        state('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+            'မှတ်တမ်းများ ရယူ၍ မရပါ', 'Supabase ချိတ်ဆက်မှုကို စစ်ဆေးပါ။ (' + esc(e.message || 'error') + ')');
+    }
+}
+
+load();
+</script>
+</body>
+</html>

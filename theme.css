@@ -630,6 +630,70 @@ h1, h2, h3, h4, h5, h6,
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 16px; color: var(--muted); font-size: 12.5px; }
 
+/* ---------- Login (name) modal ---------- */
+.login-modal { max-width: 380px; padding: 26px 22px 22px; text-align: center; }
+.login-icon {
+    width: 52px; height: 52px; border-radius: 14px; margin: 0 auto 14px;
+    display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent);
+    border: 1px solid rgba(25, 227, 155, .3);
+}
+.login-icon svg { width: 26px; height: 26px; }
+.login-title { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+.login-sub { font-size: 12.5px; color: var(--muted); margin: 7px 0 18px; line-height: 1.6; }
+.login-input {
+    width: 100%; padding: 13px 15px;
+    background: var(--surface); border: 1px solid var(--border-2);
+    border-radius: 12px; color: var(--text); font-size: 15px;
+    outline: none; text-align: center; transition: .2s;
+}
+.login-input::placeholder { color: var(--muted-2); }
+.login-input:focus { border-color: rgba(25, 227, 155, .5); box-shadow: 0 0 0 4px rgba(25, 227, 155, .1); }
+.login-error { color: var(--live); font-size: 11.5px; min-height: 16px; margin: 9px 0 3px; }
+.login-btn { width: 100%; padding: 12px; font-size: 13.5px; }
+
+/* ---------- header user chip ---------- */
+.user-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 12px 4px 4px; border-radius: 999px;
+    background: rgba(255, 255, 255, .05); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer; font-size: 12.5px; font-weight: 600;
+    transition: .18s; max-width: 170px;
+}
+.user-chip:hover { border-color: var(--border-2); background: rgba(255, 255, 255, .1); transform: translateY(-1px); }
+.user-chip:active { transform: scale(.97); }
+.user-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; flex-shrink: 0;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2));
+    color: var(--accent-ink); font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+}
+.user-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- users list ---------- */
+.user-list { display: flex; flex-direction: column; gap: 10px; }
+.user-row {
+    display: flex; align-items: center; gap: 13px;
+    padding: 12px 15px;
+    background: linear-gradient(160deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--border); border-radius: 13px;
+    transition: border-color .18s ease, transform .18s ease;
+    animation: fade-up .45s ease backwards;
+    animation-delay: var(--d, 0ms);
+}
+.user-row:hover { border-color: var(--border-2); transform: translateY(-1px); }
+.user-avatar-lg {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: grid; place-items: center; flex-shrink: 0;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2));
+    color: var(--accent-ink); font-size: 15px; font-weight: 800; text-transform: uppercase;
+}
+.user-main { flex: 1; min-width: 0; }
+.user-name { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-device { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted-2); margin-top: 3px; }
+.user-device svg { width: 13px; height: 13px; flex-shrink: 0; }
+.user-time { font-size: 11px; color: var(--muted); white-space: nowrap; text-align: right; flex-shrink: 0; }
+
 /* ---------- Footer ---------- */
 .footer {
     max-width: var(--maxw);
@@ -678,6 +742,8 @@ h1, h2, h3, h4, h5, h6,
     .channel-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
     .status-tab { padding: 10px 8px; font-size: 11.5px; }
     .status-tab .lbl { display: none; }
+    .user-chip-name { display: none; }
+    .user-chip { padding: 4px; }
     .page-title { font-size: 19px; }
     .score { font-size: 26px; }
     .iptv-modal { max-width: 100%; }
