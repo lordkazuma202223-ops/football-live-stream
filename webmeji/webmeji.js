@@ -55,6 +55,15 @@ function preloadImages(config) {
   })));
 }
 
+// distance from the top of the viewport to the bottom of the site header.
+// companions hang / jump / climb at this line, so they never slip behind the
+// fixed nav bar. falls back to the very top when there is no header.
+function headerBottomY() {
+  const el = document.querySelector('.header');
+  if (!el) return 0;
+  return Math.max(0, Math.round(el.getBoundingClientRect().bottom));
+}
+
 // creature class -------------------------------------------------------
 class Creature {
   constructor(containerId, spriteConfig) {
@@ -206,7 +215,7 @@ class Creature {
 
       const offsetX = this.currentEdge === 'left' ? -this.containerWidth/2 :
                       this.currentEdge === 'right' ? this.containerHeight/2 : 0;
-      const offsetY = this.currentEdge === 'top' ? -this.containerHeight/2 : 0;
+      const offsetY = 0; // top edge is the bottom of the header, not the viewport top
 
       this.container.style.left = `${(this.positionX||0)+offsetX}px`;
       this.container.style.top  = `${(this.positionY||0)+offsetY}px`;
@@ -230,16 +239,16 @@ class Creature {
 
     switch (targetEdge) {
         case 'top':
-            endY = 0;
+            endY = headerBottomY();
             endX = Math.random() * (window.innerWidth - this.containerWidth); // random horizontal
             break;
         case 'left':
             endX = 0;
-            endY = Math.random() * (window.innerHeight - this.containerHeight); // random vertical
+            endY = headerBottomY() + Math.random() * (window.innerHeight - this.containerHeight - headerBottomY()); // random vertical
             break;
         case 'right':
             endX = window.innerWidth - this.containerWidth;
-            endY = Math.random() * (window.innerHeight - this.containerHeight); // random vertical
+            endY = headerBottomY() + Math.random() * (window.innerHeight - this.containerHeight - headerBottomY()); // random vertical
             break;
     }
 
@@ -751,9 +760,10 @@ class Creature {
       this.updateImageDirection();
 
       // flips sprites and movement direction upon reaching a wall
+      const minY = headerBottomY();
       const maxY = window.innerHeight - this.containerHeight;
-      if (this.positionY <= 0) {
-        this.positionY = 0;
+      if (this.positionY <= minY) {
+        this.positionY = minY;
         this.direction = 1;
       } else if (this.positionY >= maxY) {
         this.positionY = maxY;
